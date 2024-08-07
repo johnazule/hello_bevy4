@@ -6,11 +6,15 @@ use bevy::prelude::*;
 
 mod movement;
 mod items;
+mod item_list;
 mod input;
+mod camera;
 
 use movement::prelude::*;
 use items::prelude::*;
 use input::prelude::*;
+use camera::prelude::*;
+use item_list::*;
 
 fn main() {
     App::new()
@@ -20,9 +24,10 @@ fn main() {
                 CharacterControllerPlugin,
                 InputControllerPlugin,
                 ItemPlugin,
+                CameraControllerPlugin
                 //WorldInspectorPlugin::new()
         ))
-        .insert_resource(Gravity(Vec2::NEG_Y * 1200.))
+        .insert_resource(Gravity(Vec2::NEG_Y * 1000.))
         .add_systems(Startup, setup)
         .run();
 }
@@ -31,17 +36,22 @@ fn main() {
 pub struct Player;
 
 fn setup(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn((
+        Camera2dBundle::default(),
+        PlayerCamera
+    ));
     commands.spawn(
         (
             Name::new("Bunny Boi"),
             Player,
             CharacterControllerBundle::new(Collider::rectangle(10.0, 20.0)).with_movement(
-            1200.0,
+            1400.0,
             0.80,
             400.0,
             (30.0 as Scalar).to_radians(),
-            3.0
+            2.8,
+            5000,
+            3
         ),
             //RigidBody::Dynamic, 
             //Collider::rectangle(10.0, 10.0),
@@ -60,18 +70,22 @@ fn setup(mut commands: Commands) {
         )
     );
     commands.spawn(PlatformBundle::default());
-    //for _i in 0..10 {
-    //    let mut rng = rand::thread_rng();
-    //    let x = rng.gen_range(-200.0..200.0);
-    //    let y = rng.gen_range(-100.0..600.0);
-    //    let oset = rng.gen_range(-45.0..45.);
-    //    commands.spawn(PlatformBundle::default().with_location(x,y));
-    //    commands.spawn(PlatformBundle::new_wall().with_location(x+oset,y+20.));
-    //}
+    for _i in 0..10 {
+        let mut rng = rand::thread_rng();
+        let x = rng.gen_range(-200.0..200.0);
+        let y = rng.gen_range(-100.0..600.0);
+        let oset = rng.gen_range(-45.0..45.);
+        commands.spawn(PlatformBundle::default().with_location(x,y));
+        commands.spawn(PlatformBundle::new_wall().with_location(x+oset,y+20.));
+    }
     //commands.spawn_batch(
     //    vec![PlatformBundle::default().with_random_location(); 3]
     //);
-    commands.spawn(ItemBundle::default().with_position(50.,-50.));
+    commands.spawn(
+        ItemBundle::default()
+            .with_position(50.,-50.)
+            .with_use_accel(|percent| 10. * (percent+0.5).powi(2))
+    );
 }
 
 #[derive(Bundle, Clone)]
@@ -92,7 +106,7 @@ impl Default for PlatformBundle {
                     custom_size: Some(Vec2::new(100., 10.)),
                     ..Default::default()
                 },
-                transform: bevy::transform::components::Transform::from_xyz(0., -100., 0.),    
+                transform: Transform::from_xyz(0., -100., 0.),    
                 ..Default::default()
             }
         }

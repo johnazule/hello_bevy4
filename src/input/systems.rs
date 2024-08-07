@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use avian2d::math::*;
 
-use crate::{movement::prelude::*, ItemAction};
+use crate::{movement::prelude::*, Equipped, InUse, Item, ItemAction};
 
 pub struct InputControllerPlugin;
 
@@ -18,6 +18,7 @@ impl Plugin for InputControllerPlugin {
 pub fn keyboard_input(
     mut movement_event_writer: EventWriter<MovementAction>,
     mut item_event_writer: EventWriter<ItemAction>,
+    equipped_item: Query<(&Equipped, Has<InUse>), With<Item>>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mouse_input: Res<ButtonInput<MouseButton>>
 ) {
@@ -31,12 +32,17 @@ pub fn keyboard_input(
         movement_event_writer.send(MovementAction::Move(direction));
     }
 
-    if keyboard_input.pressed(KeyCode::Space) {
+    if keyboard_input.just_pressed(KeyCode::Space) {
         movement_event_writer.send(MovementAction::Jump);
     }
 
     if mouse_input.pressed(MouseButton::Left) {
-        item_event_writer.send(ItemAction::Use);
+        let Ok((_equipped, in_use)) = equipped_item.get_single() else {
+            return;
+        };
+        if !in_use {
+            item_event_writer.send(ItemAction::Use);
+        }
     }
 }
 

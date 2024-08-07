@@ -1,7 +1,7 @@
-use std::any::Any;
+use avian2d::{math::*, parry::na::wrap, prelude::*};
+use bevy::{ecs::query::Has, prelude::*, utils::warn};
 
-use avian2d::{math::*, prelude::*};
-use bevy::{ecs::query::Has, prelude::*};
+use crate::Player;
 
 use super::components::*;
 
@@ -12,33 +12,36 @@ impl Plugin for CharacterControllerPlugin {
         app.add_event::<MovementAction>().add_systems(
             Update,
             (
-                //update_grounded,
+                update_grounded,
                 movement,
                 thwampy_gravity,
                 apply_movement_damping,
             )
                 .chain(),
-        ).add_systems(Update, update_grounded);
+        );
     }
 }
 
 /// Updates the [`Grounded`] status for character controllers.
 pub fn update_grounded(
     mut commands: Commands,
-    world: World,
+    time: Res<Time>,
+    grounds: Query<Option<&RigidBody>, (With<Collider>, Without<Player>)>,
     mut query: Query<
-        (Entity, &ShapeHits, &Rotation, Option<&MaxSlopeAngle>),
+        (Entity, &ShapeHits, &Rotation, &mut HangTime, &mut JumpFallCounter, Option<&MaxSlopeAngle>, Has<Grounded>),
         With<CharacterController>,
     >,
 ) {
-    for (entity, hits, rotation, max_slope_angle) in &mut query {
+    for (entity, hits, rotation, mut hang_time, mut jump_fall_counter, max_slope_angle, is_already_grounded) in &mut query {
+        // Having to tick timers manually is stupid. Like why? Seriously if I have 100 timers, I
+        // have to tick each individually? Be so for real
+        hang_time.0.tick(time.delta());
         // The character is grounded if the shape caster has a hit with a normal
         // that isn't too steep.
-        // I think filtering by fetching a componet is gonna suck for performace
-        let is_grounded = hits.iter().filter(|hit| {
-            true
-            //world.get::<RigidBody>(hit.entity).is_some()
-        }).any(|hit| {
+        let mut rigid_hits = hits.iter().filter(|hit| {
+            grounds.get(hit.entity).unwrap().is_some()
+        });
+        let is_grounded = rigid_hits.any(|hit| {
             if let Some(angle) = max_slope_angle {
                 (rotation * -hit.normal2).angle_between(Vector::Y).abs() <= angle.0
             } else {
@@ -47,10 +50,24 @@ pub fn update_grounded(
         });
 
         if is_grounded {
+            //info!("This fucker is on the ground");
             commands.entity(entity).insert(Grounded);
+            if !is_already_grounded {
+                jump_fall_counter.0 = 0;
+                hang_time.0.pause();
+                hang_time.0.reset();
+            }
         } else {
+            if is_already_grounded {
+                hang_time.0.unpause();
+            }
             commands.entity(entity).remove::<Grounded>();
         }
+        //info!("Elapsed: {:?}", hang_time.0.elapsed());
+        //info!("Grounded?: {:?}", is_grounded);
+        //info!("Was Grounded?: {:?}", is_already_grounded);
+        //info!("Finished?: {:?}", hang_time.0.finished());
+        //info!("Jump or Fall count: {:?}", jump_fall_counter.0);
     }
 }
 
@@ -78,7 +95,9 @@ pub fn movement(
         &MovementAcceleration,
         &JumpImpulse,
         &mut LinearVelocity,
-        Has<Grounded>,
+        &HangTime,
+        &mut JumpFallCounter,
+        &MaxJumpCount
     )>,
 ) {
     // Precision is adjusted so that the example works with
@@ -86,7 +105,14 @@ pub fn movement(
     let delta_time = time.delta_seconds_f64().adjust_precision();
 
     for event in movement_event_reader.read() {
-        for (movement_acceleration, jump_impulse, mut linear_velocity, is_grounded) in
+        for (
+                movement_acceleration,
+                jump_impulse,
+                mut linear_velocity,
+                hang_time,
+                mut jump_fall_counter,
+                max_jump_counter
+            ) in
             &mut controllers
         {
             match event {
@@ -94,7 +120,8 @@ pub fn movement(
                     linear_velocity.x += *direction * movement_acceleration.0 * delta_time;
                 }
                 MovementAction::Jump => {
-                    if is_grounded {
+                    if !hang_time.0.finished() || jump_fall_counter.0 < max_jump_counter.0 {
+                        jump_fall_counter.0 += 1;
                         linear_velocity.y = jump_impulse.0;
                     }
                 }
