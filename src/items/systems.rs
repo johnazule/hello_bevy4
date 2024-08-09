@@ -21,7 +21,7 @@ impl Plugin for ItemPlugin {
 }
 
 fn use_item(
-    mut item_query: Query<(&mut Transform, &SwingDesc, &UseAccel, &mut InUse, Entity), (With<Item>, Without<Player>)>,
+    mut item_query: Query<(&mut Transform, &SwingDesc, &UseAccel, &UseTime, &mut InUse, Entity), (With<Item>, Without<Player>)>,
     player_query: Query<&Transform, (With<Player>, Without<Item>)>,
     mut commands: Commands,
     time: Res<Time>
@@ -31,16 +31,17 @@ fn use_item(
             mut transform,
             swing_desc,
             use_accel,
+            use_time,
             mut in_use,
             entity
         ) in item_query.iter_mut() {
             // Might cause an edge case where item doesn't begin swing from start_angle
-            if transform.rotation == Quat::from_rotation_z(swing_desc.end_angle) {
-                transform.rotation = Quat::from_rotation_z(swing_desc.rest_angle);
+            if transform.rotation == Quat::from_rotation_z(swing_desc.end_angle_bounded()) {
+                transform.rotation = Quat::from_rotation_z(swing_desc.rest_angle_bounded());
                 commands.entity(entity).remove::<InUse>();
             }
-            if transform.rotation == Quat::from_rotation_z(swing_desc.rest_angle) {
-                transform.rotation = Quat::from_rotation_z(swing_desc.start_angle);
+            if transform.rotation == Quat::from_rotation_z(swing_desc.rest_angle_bounded()) {
+                transform.rotation = Quat::from_rotation_z(swing_desc.start_angle_bounded());
             }
             let item_current_rotation = transform.rotation.angle_between(Quat::from_rotation_z(0.));
             let use_percent = swing_desc.use_percent(item_current_rotation);
@@ -49,6 +50,7 @@ fn use_item(
             info!("Use % (real): {}", in_use.use_percent);
             transform.rotate_around(player_transform.translation, Quat::from_rotation_z(new_angle * time.delta_seconds()));
             in_use.use_percent = new_angle * time.delta_seconds();
+
         }
     }
 }

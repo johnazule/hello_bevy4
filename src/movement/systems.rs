@@ -32,10 +32,15 @@ pub fn update_grounded(
         With<CharacterController>,
     >,
 ) {
-    for (entity, hits, rotation, mut hang_time, mut jump_fall_counter, max_slope_angle, is_already_grounded) in &mut query {
-        // Having to tick timers manually is stupid. Like why? Seriously if I have 100 timers, I
-        // have to tick each individually? Be so for real
-        hang_time.0.tick(time.delta());
+    for (
+        entity,
+        hits,
+        rotation,
+        mut hang_time,
+        mut jump_fall_counter,
+        max_slope_angle,
+        is_already_grounded
+    ) in &mut query {
         // The character is grounded if the shape caster has a hit with a normal
         // that isn't too steep.
         let mut rigid_hits = hits.iter().filter(|hit| {
@@ -58,6 +63,9 @@ pub fn update_grounded(
                 hang_time.0.reset();
             }
         } else {
+            // Having to tick timers manually is stupid. Like why? Seriously if I have 100 timers, I
+            // have to tick each individually? Be so for real
+            hang_time.0.tick(time.delta());
             if is_already_grounded {
                 hang_time.0.unpause();
             }
@@ -97,7 +105,8 @@ pub fn movement(
         &mut LinearVelocity,
         &HangTime,
         &mut JumpFallCounter,
-        &MaxJumpCount
+        &MaxJumpCount,
+        Has<Grounded>
     )>,
 ) {
     // Precision is adjusted so that the example works with
@@ -111,7 +120,8 @@ pub fn movement(
                 mut linear_velocity,
                 hang_time,
                 mut jump_fall_counter,
-                max_jump_counter
+                max_jump_counter,
+                is_grounded
             ) in
             &mut controllers
         {
@@ -120,7 +130,17 @@ pub fn movement(
                     linear_velocity.x += *direction * movement_acceleration.0 * delta_time;
                 }
                 MovementAction::Jump => {
-                    if !hang_time.0.finished() || jump_fall_counter.0 < max_jump_counter.0 {
+                    let has_jumps_left = jump_fall_counter.0 < max_jump_counter.0;
+                    let only_has_base_jump_left = max_jump_counter.0 - jump_fall_counter.0 == 1;
+                    let still_hanging = !hang_time.0.finished();
+                    let mut can_jump = true;
+                    if !has_jumps_left {
+                        can_jump = false;
+                    }
+                    if only_has_base_jump_left && !(is_grounded || still_hanging) {
+                        can_jump = false;
+                    }
+                    if can_jump {
                         jump_fall_counter.0 += 1;
                         linear_velocity.y = jump_impulse.0;
                     }

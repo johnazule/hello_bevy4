@@ -24,7 +24,23 @@ pub struct SwingDesc {
 
 impl SwingDesc {
     pub fn use_percent(&self, rotation: f32) -> f32 {
-        (rotation - self.start_angle) / (self.end_angle - self.start_angle)
+        (rotation - self.start_angle_bounded()) / (self.end_angle_bounded() - self.start_angle_bounded())
+    }
+    pub fn swing_direction(&self) -> f32 {
+        if self.start_angle_bounded() > self.end_angle_bounded() {
+            -1.
+        } else {
+            1.
+        }
+    }
+    pub fn rest_angle_bounded(&self) -> f32 {
+        self.rest_angle % (2. * PI)
+    }
+    pub fn start_angle_bounded(&self) -> f32 {
+        self.start_angle % (2. * PI)
+    }
+    pub fn end_angle_bounded(&self) -> f32 {
+        self.end_angle % (2. * PI)
     }
 }
 
@@ -33,9 +49,13 @@ pub struct UseAccel {
     pub velc_function: fn(f32) -> f32,
 }
 
+#[derive(Component)]
+pub struct UseTime(pub f32);
+
 #[derive(Bundle)]
 pub struct SwingBundle {
     pub use_accel: UseAccel,
+    pub use_time: UseTime,
     pub swing_desc: SwingDesc
 }
 
@@ -75,7 +95,8 @@ impl Default for ItemBundle {
                     start_angle: PI,
                     end_angle: 0.,
                 },
-                use_accel: UseAccel { velc_function: |percent| percent}
+                use_accel: UseAccel { velc_function: |percent| percent},
+                use_time: UseTime(100.),
             }
         }
     }

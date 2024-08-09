@@ -27,7 +27,7 @@ fn main() {
                 CameraControllerPlugin
                 //WorldInspectorPlugin::new()
         ))
-        .insert_resource(Gravity(Vec2::NEG_Y * 1000.))
+        .insert_resource(Gravity(Vec2::NEG_Y * 1200.))
         .add_systems(Startup, setup)
         .run();
 }
@@ -50,8 +50,8 @@ fn setup(mut commands: Commands) {
             400.0,
             (30.0 as Scalar).to_radians(),
             2.8,
-            5000,
-            3
+            30,
+            1
         ),
             //RigidBody::Dynamic, 
             //Collider::rectangle(10.0, 10.0),
