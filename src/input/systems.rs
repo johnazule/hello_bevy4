@@ -35,6 +35,15 @@ pub fn keyboard_input(
     if keyboard_input.just_pressed(KeyCode::Space) {
         movement_event_writer.send(MovementAction::Jump);
     }
+    if keyboard_input.just_pressed(KeyCode::KeyQ) {
+        item_event_writer.send(ItemAction::Start);
+    }
+    if keyboard_input.just_pressed(KeyCode::KeyE) {
+        item_event_writer.send(ItemAction::End);
+    }
+    if keyboard_input.just_pressed(KeyCode::KeyR) {
+        item_event_writer.send(ItemAction::Rest);
+    }
 
     if mouse_input.pressed(MouseButton::Left) {
         let Ok((_equipped, in_use)) = equipped_item.get_single() else {

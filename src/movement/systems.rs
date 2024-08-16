@@ -1,5 +1,5 @@
-use avian2d::{math::*, parry::na::wrap, prelude::*};
-use bevy::{ecs::query::Has, prelude::*, utils::warn};
+use avian2d::{math::*, prelude::*};
+use bevy::{ecs::query::Has, prelude::*};
 
 use crate::Player;
 
@@ -47,6 +47,7 @@ pub fn update_grounded(
             grounds.get(hit.entity).unwrap().is_some()
         });
         let is_grounded = rigid_hits.any(|hit| {
+        //let is_grounded = hits.iter().any(|hit| {
             if let Some(angle) = max_slope_angle {
                 (rotation * -hit.normal2).angle_between(Vector::Y).abs() <= angle.0
             } else {
@@ -71,11 +72,7 @@ pub fn update_grounded(
             }
             commands.entity(entity).remove::<Grounded>();
         }
-        //info!("Elapsed: {:?}", hang_time.0.elapsed());
-        //info!("Grounded?: {:?}", is_grounded);
-        //info!("Was Grounded?: {:?}", is_already_grounded);
-        //info!("Finished?: {:?}", hang_time.0.finished());
-        //info!("Jump or Fall count: {:?}", jump_fall_counter.0);
+        info!("Is Grounded:\t{}", is_grounded);
     }
 }
 
@@ -131,19 +128,26 @@ pub fn movement(
                 }
                 MovementAction::Jump => {
                     let has_jumps_left = jump_fall_counter.0 < max_jump_counter.0;
-                    let only_has_base_jump_left = max_jump_counter.0 - jump_fall_counter.0 == 1;
+                    let is_base_jump = max_jump_counter.0 == jump_fall_counter.0;
                     let still_hanging = !hang_time.0.finished();
                     let mut can_jump = true;
                     if !has_jumps_left {
                         can_jump = false;
                     }
-                    if only_has_base_jump_left && !(is_grounded || still_hanging) {
+                    if is_base_jump && !(is_grounded || still_hanging) {
                         can_jump = false;
                     }
                     if can_jump {
                         jump_fall_counter.0 += 1;
                         linear_velocity.y = jump_impulse.0;
                     }
+                    //info!("Grounded:\t\t{}", is_grounded);
+                    //info!("Has Jumps Left:\t{}", has_jumps_left);
+                    //info!("Is Base Jump:\t\t{}", is_base_jump);
+                    //info!("Still Hanging:\t{}", still_hanging);
+                    //info!("Jump Counter:\t\t{}", jump_fall_counter.0);
+                    //info!("Can Jump:\t\t{}\n", can_jump);
+
                 }
             }
         }

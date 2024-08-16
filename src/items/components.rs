@@ -1,6 +1,6 @@
-use std::f32::consts::PI;
+use std::{f32::consts::PI, time::Duration};
 
-use avian2d::collision::Collider;
+use avian2d::{collision::Collider, prelude::Sensor};
 use bevy::{prelude::*, sprite::Anchor};
 
 #[derive(Component)]
@@ -26,6 +26,9 @@ impl SwingDesc {
     pub fn use_percent(&self, rotation: f32) -> f32 {
         (rotation - self.start_angle_bounded()) / (self.end_angle_bounded() - self.start_angle_bounded())
     }
+    pub fn swing_range(&self) -> f32 {
+        self.end_angle_bounded() - self.start_angle_bounded()
+    }
     pub fn swing_direction(&self) -> f32 {
         if self.start_angle_bounded() > self.end_angle_bounded() {
             -1.
@@ -45,12 +48,10 @@ impl SwingDesc {
 }
 
 #[derive(Component)]
-pub struct UseAccel {
-    pub velc_function: fn(f32) -> f32,
-}
+pub struct UseAccel(pub CubicSegment<Vec2>);
 
 #[derive(Component)]
-pub struct UseTime(pub f32);
+pub struct UseTime(pub Timer);
 
 #[derive(Bundle)]
 pub struct SwingBundle {
@@ -63,6 +64,9 @@ pub struct SwingBundle {
 pub enum ItemAction {
     Use,
     Eat,
+    Start,
+    End,
+    Rest
     // Maybe something like
     // UseSecondary
 }
@@ -72,6 +76,7 @@ pub struct ItemBundle {
     pub item: Item,
     pub sprite_bundle: SpriteBundle,
     pub collider: Collider,
+    pub sensor: Sensor,
     pub swing_bundle: SwingBundle
 }
 
@@ -89,14 +94,15 @@ impl Default for ItemBundle {
                 ..Default::default()
             },
             collider: Collider::rectangle(2., 30.),
+            sensor: Sensor,
             swing_bundle: SwingBundle {
                 swing_desc: SwingDesc {
-                    rest_angle: PI / 3.,
-                    start_angle: PI,
-                    end_angle: 0.,
+                    rest_angle: (4. / 3.) * PI,
+                    start_angle: PI / 3.,
+                    end_angle: PI,
                 },
-                use_accel: UseAccel { velc_function: |percent| percent},
-                use_time: UseTime(100.),
+                use_accel: UseAccel(CubicSegment::new_bezier((0.25, 0.1), (0.25, 1.0))),
+                use_time: UseTime(Timer::new(Duration::from_millis(10000), TimerMode::Once)),
             }
         }
     }
@@ -111,8 +117,12 @@ impl ItemBundle {
         self.swing_bundle.swing_desc = SwingDesc {rest_angle, start_angle, end_angle};
         self
     }
-    pub fn with_use_accel(mut self, function: fn(f32) -> f32) -> Self {
-        self.swing_bundle.use_accel.velc_function = function;
+    pub fn with_use_accel(mut self, curve: CubicSegment<Vec2>) -> Self {
+        self.swing_bundle.use_accel.0 = curve;
+        self
+    }
+    pub fn with_use_time(mut self, use_time: u64) -> Self {
+        self.swing_bundle.use_time = UseTime(Timer::new(Duration::from_millis(use_time), TimerMode::Once));
         self
     }
 }

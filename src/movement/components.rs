@@ -114,7 +114,7 @@ impl Default for MovementBundle {
             PI * 0.45,
             1.5,
             100,
-            1
+            2
         )
     }
 }
@@ -130,7 +130,7 @@ impl CharacterControllerBundle {
             rigid_body: RigidBody::Dynamic,
             collider,
             ground_caster: ShapeCaster::new(caster_shape, Vector::ZERO, 0.0, Dir2::NEG_Y)
-                .with_max_time_of_impact(3.0)
+                .with_max_time_of_impact(20.)
                 //TODO: Find a better max hit number, may be a problem with more rigid bodies
                 .with_max_hits(30),
             locked_axes: LockedAxes::ROTATION_LOCKED,

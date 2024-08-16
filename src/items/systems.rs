@@ -1,4 +1,4 @@
-use std::{f32::consts::TAU, time::Duration};
+use std::{f32::consts::{PI, TAU}, time::Duration};
 
 use avian2d::{collision::{Collider, CollidingEntities}, prelude::PhysicsSet};
 use crate::Player;
@@ -21,7 +21,7 @@ impl Plugin for ItemPlugin {
 }
 
 fn use_item(
-    mut item_query: Query<(&mut Transform, &SwingDesc, &UseAccel, &UseTime, &mut InUse, Entity), (With<Item>, Without<Player>)>,
+    mut item_query: Query<(&mut Transform, &SwingDesc, &UseAccel, &mut UseTime, &mut InUse, Entity), (With<Item>, Without<Player>)>,
     player_query: Query<&Transform, (With<Player>, Without<Item>)>,
     mut commands: Commands,
     time: Res<Time>
@@ -31,26 +31,37 @@ fn use_item(
             mut transform,
             swing_desc,
             use_accel,
-            use_time,
+            mut use_time,
             mut in_use,
             entity
         ) in item_query.iter_mut() {
-            // Might cause an edge case where item doesn't begin swing from start_angle
-            if transform.rotation == Quat::from_rotation_z(swing_desc.end_angle_bounded()) {
-                transform.rotation = Quat::from_rotation_z(swing_desc.rest_angle_bounded());
+            if use_time.0.fraction() == 0. {
+                //transform.rotation = Quat::from_rotation_z(swing_desc.start_angle);
+            }
+            use_time.0.tick(time.delta());
+            if use_time.0.finished() {
+                use_time.0.reset();
+                transform.rotation = Quat::from_rotation_z(swing_desc.rest_angle);
                 commands.entity(entity).remove::<InUse>();
+            } else {
+                info!("Swing Range: {}", swing_desc.swing_range());
+                transform.rotation = Quat::from_rotation_z(swing_desc.start_angle_bounded() + swing_desc.swing_range() * (use_accel.0.ease(use_time.0.fraction())));
             }
-            if transform.rotation == Quat::from_rotation_z(swing_desc.rest_angle_bounded()) {
-                transform.rotation = Quat::from_rotation_z(swing_desc.start_angle_bounded());
-            }
-            let item_current_rotation = transform.rotation.angle_between(Quat::from_rotation_z(0.));
-            let use_percent = swing_desc.use_percent(item_current_rotation);
-            let new_angle = item_current_rotation + (use_accel.velc_function)(use_percent);
-            info!("Use % (calc): {}", use_percent);
-            info!("Use % (real): {}", in_use.use_percent);
-            transform.rotate_around(player_transform.translation, Quat::from_rotation_z(new_angle * time.delta_seconds()));
-            in_use.use_percent = new_angle * time.delta_seconds();
-
+            // Might cause an edge case where item doesn't begin swing from start_angle
+            //if transform.rotation == Quat::from_rotation_z(swing_desc.end_angle_bounded()) {
+            //    transform.rotation = Quat::from_rotation_z(swing_desc.rest_angle_bounded());
+            //    commands.entity(entity).remove::<InUse>();
+            //}
+            //if transform.rotation == Quat::from_rotation_z(swing_desc.rest_angle_bounded()) {
+            //    transform.rotation = Quat::from_rotation_z(swing_desc.start_angle_bounded());
+            //}
+            //let item_current_rotation = transform.rotation.angle_between(Quat::from_rotation_z(0.));
+            //let use_percent = swing_desc.use_percent(item_current_rotation);
+            //let new_angle = item_current_rotation + (use_accel.velc_function)(use_percent);
+            //info!("Use % (calc): {}", use_percent);
+            //info!("Use % (real): {}", in_use.use_percent);
+            //transform.rotate_around(player_transform.translation, Quat::from_rotation_z(new_angle * time.delta_seconds()));
+            //in_use.use_percent = new_angle * time.delta_seconds
         }
     }
 }
@@ -96,21 +107,35 @@ fn handle_item_actions(
     mut item_event_reader: EventReader<ItemAction>,
     mut commands: Commands,
     time: Res<Time>,
-    mut item_query: Query<(Entity, &mut Transform), (With<Item>, With<Equipped>)>
+    mut item_query: Query<(Entity, &mut Transform, &SwingDesc), (With<Item>, With<Equipped>)>
 ) {
     for event in item_event_reader.read() {
-        match event {
-            ItemAction::Use => {
-                info!("Yay");
-                let item = item_query.get_single_mut();
-                if item.is_ok() {
-                    let (item_entity, mut item_transform) = item.unwrap();
+        let item = item_query.get_single_mut();
+        if item.is_ok() {
+            let (item_entity, mut item_transform, swing_desc) = item.unwrap();
+            //item_transform.rotate_z(45. * TAU * time.delta_seconds());
+            match event {
+                ItemAction::Use => {
+                    info!("Yay");
                     commands.entity(item_entity).insert(InUse::default());
-                    //item_transform.rotate_z(45. * TAU * time.delta_seconds());
+                    //if item.is_ok() {
+                    //    let (item_entity, mut item_transform, swing_desc) = item.unwrap();
+                    //    commands.entity(item_entity).insert(InUse::default());
+                    //    //item_transform.rotate_z(45. * TAU * time.delta_seconds());
+                    //}
                 }
-            }
-            ItemAction::Eat => {
+                ItemAction::Eat => {
 
+                },
+                ItemAction::Start => {
+                    item_transform.rotation = Quat::from_rotation_z(swing_desc.start_angle);
+                },
+                ItemAction::End => {
+                    item_transform.rotation = Quat::from_rotation_z(swing_desc.end_angle);
+                },
+                ItemAction::Rest => {
+                    item_transform.rotation = Quat::from_rotation_z(swing_desc.rest_angle);
+                }
             }
         }
     }
