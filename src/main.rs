@@ -1,8 +1,9 @@
+use bevy_light_2d::light::{AmbientLight2d, PointLight2d, PointLight2dBundle};
 use rand::Rng;
 
 use avian2d::{math::*, prelude::*};
 //use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use bevy::prelude::*;
+use bevy::{prelude::*, sprite::Anchor};
 
 mod movement;
 mod items;
@@ -26,7 +27,8 @@ fn main() {
                 CharacterControllerPlugin,
                 InputControllerPlugin,
                 ItemPlugin,
-                CameraControllerPlugin
+                CameraControllerPlugin,
+                GraphicsPlugin
                 //WorldInspectorPlugin::new()
         ))
         .insert_resource(Gravity(Vec2::NEG_Y * 1200.))
@@ -48,6 +50,11 @@ fn setup(
 
     commands.spawn((
         Camera2dBundle::default(),
+        AmbientLight2d {
+            brightness: 0.2,
+            color: Color::linear_rgb(1.00, 0.8, 0.5),
+            ..default()
+        },
         PlayerCamera
     ));
     commands.spawn(
@@ -71,10 +78,10 @@ fn setup(
             ColliderDensity(2.0),
             GraphicsBundle::new(
                 asset_server.load("sprites/hehe.png"),
-                texture_atlas_layouts,
+                &mut texture_atlas_layouts,
                 UVec2::new(10, 20),
                 6,
-                2,
+                3,
                 Vec2::new(0., -10.)
             )
             //SpriteBundle {
@@ -94,26 +101,52 @@ fn setup(
         let x = rng.gen_range(-200.0..200.0);
         let y = rng.gen_range(-100.0..600.0);
         let oset = rng.gen_range(-45.0..45.);
-        commands.spawn(PlatformBundle::default().with_location(x,y));
+        if rng.gen_bool(0.5) {
+            commands.spawn((
+                PlatformBundle::default().with_location(x,y),
+                PointLight2d {
+                    radius: 200.0,
+                    intensity: 3.5,
+                    cast_shadows: true,
+                    falloff: 0.5,
+                    color: Color::linear_rgb(0.6, 1., 0.8)
+                }
+            ));
+        } else {
+            commands.spawn((
+                PlatformBundle::default().with_location(x,y),
+            ));
+        }
         commands.spawn(PlatformBundle::new_wall().with_location(x+oset,y+20.));
     }
     //commands.spawn_batch(
     //    vec![PlatformBundle::default().with_random_location(); 3]
     //);
-    commands.spawn(
+    commands.spawn((
+        Name::new("Carrot Sword"),
+        GraphicsBundle::new(
+            asset_server.load("sprites/carrot.png"),
+            &mut texture_atlas_layouts,
+            UVec2::new(5,30),
+            1,
+            1,
+            Vec2::new(100.,0.)
+        )
+            .with_anchor(Anchor::BottomRight),
         ItemBundle::default()
-            .with_position(50.,-50.)
+            //.with_position(50.,-50.)
             .with_use_accel(CubicSegment::new_bezier((0.25, 0.1), (0.25, 1.)))
             .with_use_time(250)
             .with_swing_desc(4. * PI / 3., PI / 6., 4.* PI / 3.)
-    );
+    ));
 }
 
 #[derive(Bundle, Clone)]
 pub struct PlatformBundle {
     pub rigid_body: RigidBody,
     pub collider: Collider,
-    pub sprite_bundle: SpriteBundle
+    pub sprite_bundle: SpriteBundle,
+    pub light: PointLight
 }
 
 impl Default for PlatformBundle {
@@ -129,7 +162,8 @@ impl Default for PlatformBundle {
                 },
                 transform: Transform::from_xyz(0., -100., 0.),    
                 ..default()
-            }
+            },
+            light: PointLight::default()
         }
     }
 }
@@ -147,7 +181,8 @@ impl PlatformBundle {
                 },
                 transform: Transform::from_xyz(0., -100., 0.),    
                 ..Default::default()
-            }
+            },
+            light: PointLight::default()
         }
     }
     pub fn with_random_location(mut self) -> Self {

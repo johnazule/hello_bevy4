@@ -1,15 +1,23 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, sprite::Anchor};
+
+/// The direction the entity is facing
+#[derive(Component, Clone, Debug)]
+pub enum Facing {
+    Left,
+    Right,
+}
 
 #[derive(Bundle)]
 pub struct GraphicsBundle {
     pub sprite: SpriteBundle,
-    pub texture_atlas: TextureAtlas
+    pub texture_atlas: TextureAtlas,
+    pub facing: Facing
 }
 
 impl GraphicsBundle {
     pub fn new(
         handle: Handle<Image>,
-        mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
+        mut texture_atlas_layouts: &mut ResMut<Assets<TextureAtlasLayout>>,
         tile_size: UVec2,
         tile_columns: u32,
         tile_rows: u32,
@@ -26,7 +34,12 @@ impl GraphicsBundle {
             texture_atlas: TextureAtlas {
                 layout: texture_atlas_layout,
                 index: 1
-            }
+            },
+            facing: Facing::Right
         }
+    }
+    pub fn with_anchor(mut self, anchor: Anchor) -> Self {
+        self.sprite.sprite.anchor = anchor;
+        self
     }
 }

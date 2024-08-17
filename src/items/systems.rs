@@ -1,7 +1,7 @@
 use std::{f32::consts::{PI, TAU}, time::Duration};
 
 use avian2d::{collision::{Collider, CollidingEntities}, prelude::PhysicsSet};
-use crate::Player;
+use crate::{Facing, Player};
 use bevy::prelude::*;
 //use bevy::{ecs::system::ParamSet, prelude::*};
 use super::prelude::*;
@@ -85,22 +85,36 @@ fn equip_item(
 }
 
 fn equipped_item_follow_player(
-    player_query: Query<Entity, With<Player>>,
+    player_query: Query<(Entity, &Facing), With<Player>>,
     mut transform_parems: ParamSet<(
         TransformHelper,
-        Query<&mut Transform, (With<Equipped>, Without<Player>)>
+        Query<(&mut Transform, &mut Facing), (With<Equipped>, Without<Player>)>
     )>,
 ) {
-    let player_entity = player_query.get_single();
-    if player_entity.is_ok() {
-        let Ok(player_transform) = transform_parems.p0().compute_global_transform(player_entity.unwrap()) else {
+    let player_result = player_query.get_single();
+    match player_result {
+        Ok((player_entity, player_facing)) => {
+            let player_transform = transform_parems.p0().compute_global_transform(player_entity).unwrap();
+            for (mut item_transform, mut item_facing) in transform_parems.p1().iter_mut() {
+                item_transform.translation.x = player_transform.translation().x;
+                item_transform.translation.y = player_transform.translation().y  - 10.;
+                *item_facing = player_facing.clone();
+                //info!("Item Facing ({:?}) is Player Facing ({:?})", item_facing, player_facing);
+            }
+        }
+        Err(_) => {
             return
-        };
-        for mut item in transform_parems.p1().iter_mut() {
-            item.translation.x = player_transform.translation().x;
-            item.translation.y = player_transform.translation().y;
         }
     }
+    //if player_entity.is_ok() {
+    //    let Ok(player_transform) = transform_parems.p0().compute_global_transform(player_entity.unwrap()) else {
+    //        return
+    //    };
+    //    for mut item in transform_parems.p1().iter_mut() {
+    //        item.translation.x = player_transform.translation().x;
+    //        item.translation.y = player_transform.translation().y;
+    //    }
+    //}
 }
 
 fn handle_item_actions(

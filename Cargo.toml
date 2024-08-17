@@ -7,6 +7,7 @@ edition = "2021"
 avian2d = "0.1.1"
 bevy = { version = "0.14.0", features = ["dynamic_linking"]}
 bevy-inspector-egui = "0.25.1"
+bevy_light_2d = "0.3.0"
 rand = "0.8.5"
 
 [profile.dev]

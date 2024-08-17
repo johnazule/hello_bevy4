@@ -1,7 +1,7 @@
 use avian2d::{math::*, prelude::*};
 use bevy::{ecs::query::Has, prelude::*};
 
-use crate::Player;
+use crate::{Facing, Player};
 
 use super::components::*;
 
@@ -72,7 +72,7 @@ pub fn update_grounded(
             }
             commands.entity(entity).remove::<Grounded>();
         }
-        info!("Is Grounded:\t{}", is_grounded);
+        //info!("Is Grounded:\t{}", is_grounded);
     }
 }
 
@@ -103,6 +103,7 @@ pub fn movement(
         &HangTime,
         &mut JumpFallCounter,
         &MaxJumpCount,
+        &mut Facing,
         Has<Grounded>
     )>,
 ) {
@@ -118,12 +119,18 @@ pub fn movement(
                 hang_time,
                 mut jump_fall_counter,
                 max_jump_counter,
+                mut facing,
                 is_grounded
             ) in
             &mut controllers
         {
             match event {
                 MovementAction::Move(direction) => {
+                    if *direction > 0. {
+                        *facing = Facing::Right;
+                    } else {
+                        *facing = Facing::Left;
+                    }
                     linear_velocity.x += *direction * movement_acceleration.0 * delta_time;
                 }
                 MovementAction::Jump => {

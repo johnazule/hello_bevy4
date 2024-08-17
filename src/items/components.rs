@@ -3,6 +3,8 @@ use std::{f32::consts::PI, time::Duration};
 use avian2d::{collision::Collider, prelude::Sensor};
 use bevy::{prelude::*, sprite::Anchor};
 
+use crate::Facing;
+
 #[derive(Component)]
 pub struct Item;
 
@@ -39,6 +41,7 @@ impl SwingDesc {
     pub fn rest_angle_bounded(&self) -> f32 {
         self.rest_angle % (2. * PI)
     }
+    /// Returns the start angle between [0, 2.*PI]
     pub fn start_angle_bounded(&self) -> f32 {
         self.start_angle % (2. * PI)
     }
@@ -74,26 +77,26 @@ pub enum ItemAction {
 #[derive(Bundle)]
 pub struct ItemBundle {
     pub item: Item,
-    pub sprite_bundle: SpriteBundle,
+    //pub sprite_bundle: SpriteBundle,
     pub collider: Collider,
     pub sensor: Sensor,
-    pub swing_bundle: SwingBundle
+    pub swing_bundle: SwingBundle,
 }
 
 impl Default for ItemBundle {
     fn default() -> Self {
         Self {
             item: Item,
-            sprite_bundle: SpriteBundle {
-                sprite: Sprite {
-                    color: Color::linear_rgb(1., 0.2, 0.),
-                    custom_size: Some(Vec2::new(2.,30.)),
-                    anchor: Anchor::BottomRight,
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
-            collider: Collider::rectangle(2., 30.),
+            //sprite_bundle: SpriteBundle {
+            //    sprite: Sprite {
+            //        color: Color::linear_rgb(1., 0.2, 0.),
+            //        custom_size: Some(Vec2::new(2.,30.)),
+            //        anchor: Anchor::BottomRight,
+            //        ..Default::default()
+            //    },
+            //    ..Default::default()
+            //},
+            collider: Collider::rectangle(5., 30.),
             sensor: Sensor,
             swing_bundle: SwingBundle {
                 swing_desc: SwingDesc {
@@ -103,16 +106,16 @@ impl Default for ItemBundle {
                 },
                 use_accel: UseAccel(CubicSegment::new_bezier((0.25, 0.1), (0.25, 1.0))),
                 use_time: UseTime(Timer::new(Duration::from_millis(10000), TimerMode::Once)),
-            }
+            },
         }
     }
 }
 
 impl ItemBundle {
-    pub fn with_position(mut self, x: f32, y: f32) -> Self {
-        self.sprite_bundle.transform.translation = Vec3::new(x, y, 0.);
-        self
-    }
+    //pub fn with_position(mut self, x: f32, y: f32) -> Self {
+    //    self.sprite_bundle.transform.translation = Vec3::new(x, y, 0.);
+    //    self
+    //}
     pub fn with_swing_desc(mut self, rest_angle: f32, start_angle: f32, end_angle: f32) -> Self {
         self.swing_bundle.swing_desc = SwingDesc {rest_angle, start_angle, end_angle};
         self
