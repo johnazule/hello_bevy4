@@ -1,20 +1,25 @@
 use std::f32::consts::PI;
 
 use avian2d::prelude::LinearVelocity;
-use bevy::prelude::*;
+use bevy::{ecs::entity, prelude::*};
 use bevy_light_2d::plugin::Light2dPlugin;
 
-use crate::Facing;
+use crate::{Facing, AnimationList, StateAnimation, StateChange};
+
+use super::prelude::GraphicsState;
 
 pub struct GraphicsPlugin;
 
 impl Plugin for GraphicsPlugin {
     fn build(&self, app: &mut App) {
         app
+            .add_event::<StateChange>()
             .add_systems(Update, (
                 flip_sprite,
-                state_machine
-            ))
+                //state_machine,
+                //set_state,
+                //set_sprite_from_state
+            ).chain())
             .add_plugins(Light2dPlugin);
     }
 }
@@ -35,16 +40,84 @@ fn flip_sprite(mut query: Query<(&mut Transform, &mut Sprite, &Facing, &Name)>) 
    } 
 }
 
-fn state_machine(
-    mut query: Query<(&LinearVelocity, &mut TextureAtlas)>
+fn set_state(
+    mut query: Query<(&mut GraphicsState)>,
+    mut state_change_event_reader: EventReader<StateChange>
 ) {
-    for (linear_velocity, mut texture_atlas) in query.iter_mut() {
+    for graphics_state_change in state_change_event_reader.read() {
+        info!("Here!!");
+        let graphics_state_result = query.get_mut(graphics_state_change.entity);
+        if graphics_state_result.is_ok() {
+            let new_state = graphics_state_change.state.clone();
+            let debug_state = new_state.clone();
+            *graphics_state_result.unwrap() = new_state;
+            info!("The state ({:?}) has been set!!", debug_state);
+        }
+    }
+}
+fn state_machine(
+    query: Query<(&LinearVelocity, Entity, &GraphicsState)>,
+    mut state_change_event_writer: EventWriter<StateChange>
+) {
+    for (linear_velocity, entity, state) in query.iter() {
+        //info!("Linear Velocity (y): {}", linear_velocity.y);
         if linear_velocity.y > 1. {
-            info!("Jumping");
-        } else if linear_velocity.y < -1. {
-            info!("Falling");
+            if state.is_not_state(&GraphicsState::Jumping) {
+                state_change_event_writer.send(StateChange {
+                    state: GraphicsState::Jumping,
+                    entity
+                });
+            }
+        } else if linear_velocity.y < -0.5 {
+            if state.is_not_state(&GraphicsState::Falling) {
+                state_change_event_writer.send(StateChange {
+                    state: GraphicsState::Falling,
+                    entity
+                });
+            }
+        } else if linear_velocity.x.abs() > 1. {
+            if state.is_not_state(&GraphicsState::Running) {
+                state_change_event_writer.send(StateChange {
+                    state: GraphicsState::Running,
+                    entity
+                });
+            }
+        } else {
+            if state.is_not_state(&GraphicsState::Idle) {
+                state_change_event_writer.send(StateChange {
+                    state: GraphicsState::Idle,
+                    entity
+                });
+            }
         }
         //info!("Linear Velocity: {:?}", linear_velocity);
         //info!("Sprite Index: {}", texture_atlas.index);
     }
 }
+
+
+//fn set_sprite_from_state(
+//    mut query: Query<(&GraphicsState, &LinearVelocity, &StateAnimation, &mut StateAnimationSpeed, &mut TextureAtlas)>,
+//    mut time: Res<Time>
+//) {
+//    for (graphics_state, linear_velocity, state_animation, mut state_animation_speed, mut texture_atlas) in query.iter_mut() {
+//        match *graphics_state {
+//            GraphicsState::Jumping => {
+//                texture_atlas.index = state_animation.jumping_indexs.0;
+//            }
+//            GraphicsState::Falling => {
+//                texture_atlas.index = state_animation.falling_indexs.0;
+//            }
+//            GraphicsState::Running => {
+//                state_animation_speed.running_timer.tick(time.delta());
+//                texture_atlas.index = state_animation.running_frame_from_percent(state_animation_speed.running_timer.fraction());
+//            }
+//            GraphicsState::Idle => {
+//                state_animation_speed.idle_timer.tick(time.delta());
+//                let new_index = state_animation.idle_frame_from_percent(state_animation_speed.idle_timer.fraction());
+//                texture_atlas.index = new_index; 
+//            }
+//
+//        } 
+//    }
+//}

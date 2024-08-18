@@ -44,7 +44,7 @@ fn use_item(
                 transform.rotation = Quat::from_rotation_z(swing_desc.rest_angle);
                 commands.entity(entity).remove::<InUse>();
             } else {
-                info!("Swing Range: {}", swing_desc.swing_range());
+                //info!("Swing Range: {}", swing_desc.swing_range());
                 transform.rotation = Quat::from_rotation_z(swing_desc.start_angle_bounded() + swing_desc.swing_range() * (use_accel.0.ease(use_time.0.fraction())));
             }
             // Might cause an edge case where item doesn't begin swing from start_angle
@@ -130,7 +130,7 @@ fn handle_item_actions(
             //item_transform.rotate_z(45. * TAU * time.delta_seconds());
             match event {
                 ItemAction::Use => {
-                    info!("Yay");
+                    //info!("Yay");
                     commands.entity(item_entity).insert(InUse::default());
                     //if item.is_ok() {
                     //    let (item_entity, mut item_transform, swing_desc) = item.unwrap();

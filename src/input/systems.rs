@@ -22,18 +22,36 @@ pub fn keyboard_input(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mouse_input: Res<ButtonInput<MouseButton>>
 ) {
-    let left = keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]);
-    let right = keyboard_input.any_pressed([KeyCode::KeyD, KeyCode::ArrowRight]);
+    let left_pressed = keyboard_input.any_just_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]);
+    let right_pressed = keyboard_input.any_just_pressed([KeyCode::KeyD, KeyCode::ArrowRight]);
+    let jump_pressed = keyboard_input.any_just_pressed([KeyCode::Space]);
+    let fall_pressed = keyboard_input.any_just_pressed([KeyCode::KeyS, KeyCode::ArrowDown]);
 
-    let horizontal = right as i8 - left as i8;
-    let direction = horizontal as Scalar;
+    let left_released = keyboard_input.any_just_released([KeyCode::KeyA, KeyCode::ArrowLeft]);
+    let right_released = keyboard_input.any_just_released([KeyCode::KeyD, KeyCode::ArrowRight]);
+    let jump_released = keyboard_input.any_just_released([KeyCode::Space]);
 
-    if direction != 0.0 {
-        movement_event_writer.send(MovementAction::Move(direction));
+    if left_pressed && !right_pressed {
+        movement_event_writer.send(MovementAction::RunLeft);
+    }
+    if left_released && !right_pressed {
+        movement_event_writer.send(MovementAction::RunEnd);
+    }
+    if right_pressed && !left_pressed{
+        movement_event_writer.send(MovementAction::RunRight);
+    }
+    if right_released && !left_pressed {
+        movement_event_writer.send(MovementAction::RunEnd);
     }
 
-    if keyboard_input.just_pressed(KeyCode::Space) {
-        movement_event_writer.send(MovementAction::Jump);
+    if jump_pressed {
+        movement_event_writer.send(MovementAction::JumpStart);
+    }
+    if jump_released {
+        movement_event_writer.send(MovementAction::JumpEnd);
+    }
+    if fall_pressed {
+        movement_event_writer.send(MovementAction::Fall);
     }
     if keyboard_input.just_pressed(KeyCode::KeyQ) {
         item_event_writer.send(ItemAction::Start);

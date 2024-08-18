@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bevy_light_2d::light::{AmbientLight2d, PointLight2d, PointLight2dBundle};
 use rand::Rng;
 
@@ -53,7 +55,6 @@ fn setup(
         AmbientLight2d {
             brightness: 0.2,
             color: Color::linear_rgb(1.00, 0.8, 0.5),
-            ..default()
         },
         PlayerCamera
     ));
@@ -62,28 +63,61 @@ fn setup(
             Name::new("Hehe"),
             Player,
             CharacterControllerBundle::new(Collider::rectangle(10.0, 20.0)).with_movement(
-            1400.0,
-            0.80,
-            400.0,
-            (30.0 as Scalar).to_radians(),
-            2.8,
-            30,
-            2
-        ),
+                0.80,
+                RunBundle::new(
+                    20.,
+                    380.,
+                    550,
+                    Vec2::new(0.45, 0.1),
+                    Vec2::new(0.45, 0.1)
+                ),
+                JumpBundle::new(
+                    600.,
+                    250,
+                    2,
+                    Vec2::new(0., 1.),
+                    Vec2::new(0.7, 0.9),
+                ),
+                FallBundle::new(
+                    -0.,
+                    -280.,
+                    550,
+                    Vec2::new(0.50, 0.5),
+                    Vec2::new(0.50, 0.5)
+                ),
+                (30.0 as Scalar).to_radians(),
+                100,
+            ),
             //RigidBody::Dynamic, 
             //Collider::rectangle(10.0, 10.0),
             //LockedAxes::ROTATION_LOCKED,
-            Friction::ZERO.with_combine_rule(CoefficientCombine::Min),
+            Friction::ZERO.with_combine_rule(CoefficientCombine::Max),
             Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
             ColliderDensity(2.0),
-            GraphicsBundle::new(
-                asset_server.load("sprites/hehe.png"),
-                &mut texture_atlas_layouts,
-                UVec2::new(10, 20),
-                6,
-                3,
-                Vec2::new(0., -10.)
-            )
+            PlayerGraphicsBundle {
+                graphics_bundle: GraphicsBundle::new(
+                    asset_server.load("sprites/hehe.png"),
+                    &mut texture_atlas_layouts,
+                    UVec2::new(10, 20),
+                    6,
+                    3,
+                    Vec2::new(0., -10.)
+                ), 
+                state: GraphicsState::Falling,
+                animation_list: AnimationList(vec![
+                    StateAnimation::new_timer(12, 17, GraphicsState::Idle, 250)
+                ])
+                //state_animation: StateAnimation {
+                //    idle_indexs: (12, 17),
+                //    running_indexs: (0,5),
+                //    jumping_indexs: (6,11),
+                //    falling_indexs: (11, 6)
+                //},
+                //state_animation_speed: StateAnimationSpeed {
+                //    idle_timer: Timer::new(Duration::from_millis(550), TimerMode::Repeating),
+                //    running_timer: Timer::new(Duration::from_millis(250), TimerMode::Repeating),
+                //}
+            }
             //SpriteBundle {
             //    texture: hehe_texture_handle,
             //    transform: Transform::from_xyz(0., -10., 0.).with_scale(Vec3::splat(2.)),
@@ -108,7 +142,7 @@ fn setup(
                     radius: 200.0,
                     intensity: 3.5,
                     cast_shadows: true,
-                    falloff: 0.5,
+                    falloff: 4.5,
                     color: Color::linear_rgb(0.6, 1., 0.8)
                 }
             ));
@@ -119,9 +153,9 @@ fn setup(
         }
         commands.spawn(PlatformBundle::new_wall().with_location(x+oset,y+20.));
     }
-    //commands.spawn_batch(
-    //    vec![PlatformBundle::default().with_random_location(); 3]
-    //);
+    commands.spawn_batch(
+        vec![PlatformBundle::default().with_random_location(); 3]
+    );
     commands.spawn((
         Name::new("Carrot Sword"),
         GraphicsBundle::new(
@@ -145,6 +179,7 @@ fn setup(
 pub struct PlatformBundle {
     pub rigid_body: RigidBody,
     pub collider: Collider,
+    pub friction: Friction,
     pub sprite_bundle: SpriteBundle,
     pub light: PointLight
 }
@@ -154,6 +189,7 @@ impl Default for PlatformBundle {
         Self {
             rigid_body: RigidBody::Static, 
             collider: Collider::rectangle(100.0, 10.0),
+            friction: Friction::new(0.5).with_static_coefficient(0.),
             sprite_bundle: SpriteBundle {
                 sprite: Sprite {
                     color: Color::WHITE,
@@ -173,6 +209,7 @@ impl PlatformBundle {
         Self {
             rigid_body: RigidBody::Static, 
             collider: Collider::rectangle(10.0, 30.0),
+            friction: Friction::ZERO,
             sprite_bundle: SpriteBundle {
                 sprite: Sprite {
                     color: Color::WHITE,

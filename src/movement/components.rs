@@ -7,8 +7,12 @@ use bevy::prelude::*;
 /// An event sent for a movement input action.
 #[derive(Event)]
 pub enum MovementAction {
-    Move(Scalar),
-    Jump,
+    RunRight,
+    RunLeft,
+    RunEnd,
+    JumpStart,
+    JumpEnd,
+    Fall
 }
 
 /// A marker component indicating that an entity is using a character controller.
@@ -36,6 +40,166 @@ pub struct MovementDampingFactor(pub Scalar);
 #[derive(Component, Reflect)]
 pub struct JumpImpulse(pub Scalar);
 
+/// The acceleration curve of a jump
+#[derive(Component)]
+pub struct JumpCurve(pub CubicSegment<Vec2>);
+
+/// The length of a jump
+#[derive(Component)]
+pub struct JumpTimer(pub Timer);
+
+/// The hieght of a jump
+#[derive(Component)]
+pub struct JumpHeight(pub Scalar);
+
+#[derive(Component, PartialEq, Debug)]
+pub enum JumpFallState {
+    Jumping,
+    Falling,
+    Idle
+}
+
+#[derive(Component, PartialEq, Debug)]
+pub enum MoveState {
+    Running(f32),
+    Dashing,
+    Idle,
+}
+
+/// The initial move velocity
+#[derive(Component)]
+pub struct InitialRunSpeed(pub f32);
+/// The maximum move velocity
+#[derive(Component)]
+pub struct MaxRunSpeed(pub f32);
+/// The duration of move acceleration
+#[derive(Component)]
+pub struct RunTimer(pub Timer);
+
+/// The run acceleration curve
+#[derive(Component)]
+pub struct RunCurve(pub CubicSegment<Vec2>);
+/// A bundle containing all nessacary Run Components
+#[derive(Bundle)]
+pub struct RunBundle {
+    pub initial_run_speed: InitialRunSpeed,
+    pub max_run_speed: MaxRunSpeed,
+    pub run_timer: RunTimer,
+    pub run_curve: RunCurve,
+    pub move_state: MoveState,
+}
+
+impl RunBundle {
+    pub fn new(initial_run_speed: f32, max_run_speed: f32, duration: u64, curve_control1: Vec2, curve_control2: Vec2) -> Self {
+        Self {
+            initial_run_speed: InitialRunSpeed(initial_run_speed),
+            max_run_speed: MaxRunSpeed(max_run_speed),
+            run_timer: RunTimer(Timer::new(Duration::from_millis(duration), TimerMode::Once)),
+            run_curve: RunCurve(CubicSegment::new_bezier(curve_control1, curve_control2)),
+            move_state: MoveState::Idle
+        }
+    }
+}
+
+impl Default for RunBundle {
+    fn default() -> Self {
+        Self::new(
+            5.,
+            30.,
+            250,
+            Vec2::new(0.25, 0.1),
+            Vec2::new(0.25, 1.)
+        )
+    }
+}
+/// A bundle contataining all nessacary Jump Components
+#[derive(Bundle)]
+pub struct JumpBundle {
+    pub jump_height: JumpHeight,
+    pub jump_timer: JumpTimer,
+    pub jump_curve: JumpCurve,
+    pub max_jump_count: MaxJumpCount,
+    pub jump_fall_counter: JumpFallCounter,
+    pub jump_fall_state: JumpFallState,
+}
+
+impl JumpBundle {
+    pub fn new(height: f32, duration: u64, max_jump_count: i32, curve_control1: Vec2, curve_control2: Vec2) -> Self {
+        Self {
+            jump_height: JumpHeight(height),
+            jump_timer: JumpTimer(Timer::new(Duration::from_millis(duration), TimerMode::Once)),
+            jump_curve: JumpCurve(CubicSegment::new_bezier(curve_control1, curve_control2)),
+            max_jump_count: MaxJumpCount(max_jump_count),
+            jump_fall_counter: JumpFallCounter(0),
+            jump_fall_state: JumpFallState::Falling
+        }
+    }
+}
+
+impl Default for JumpBundle {
+    fn default() -> Self {
+        Self::new(
+            100.,
+            250,
+            1,
+            Vec2::new(0.25, 0.1),
+            Vec2::new(0.25, 1.)
+        )
+        //Self {
+        //    jump_height: JumpHeight(100.),
+        //    jump_timer: JumpTimer(Timer::new(Duration::from_millis(250), TimerMode::Once)),
+        //    jump_curve: JumpCurve(CubicSegment::new_bezier(Vec2::new(0.25,0.1), Vec2::new(0.25, 1.))),
+        //    max_jump_count: MaxJumpCount(1),
+        //    jump_fall_counter: JumpFallCounter(0),
+        //    jump_fall_state: JumpFallState::Falling
+        //}
+    }
+}
+
+/// The initial move velocity
+#[derive(Component)]
+pub struct InitialFallSpeed(pub f32);
+/// The maximum move velocity
+#[derive(Component)]
+pub struct MaxFallSpeed(pub f32);
+/// The duration of move acceleration
+#[derive(Component)]
+pub struct FallTimer(pub Timer);
+
+/// The run acceleration curve
+#[derive(Component)]
+pub struct FallCurve(pub CubicSegment<Vec2>);
+/// A bundle containing all nessacary Fall Components
+#[derive(Bundle)]
+pub struct FallBundle {
+    pub initial_fall_speed: InitialFallSpeed,
+    pub max_fall_speed: MaxFallSpeed,
+    pub fall_timer: FallTimer,
+    pub fall_curve: FallCurve,
+}
+impl FallBundle {
+    pub fn new(initial_fall_speed: f32, max_fall_speed: f32, duration: u64, curve_control1: Vec2, curve_control2: Vec2) -> Self {
+        Self {
+            initial_fall_speed: InitialFallSpeed(initial_fall_speed),
+            max_fall_speed: MaxFallSpeed(max_fall_speed),
+            fall_timer: FallTimer(Timer::new(Duration::from_millis(duration), TimerMode::Once)),
+            fall_curve: FallCurve(CubicSegment::new_bezier(curve_control1, curve_control2)),
+        }
+    }
+}
+
+impl Default for FallBundle {
+    fn default() -> Self {
+        Self::new(
+            5.,
+            30.,
+            250,
+            Vec2::new(0.25, 0.1),
+            Vec2::new(0.25, 1.)
+        )
+    }
+}
+
 /// The strength of a jump.
 #[derive(Component, Reflect)]
 pub struct FallGravityScale(pub Scalar);
@@ -61,46 +225,52 @@ pub struct CharacterControllerBundle {
     pub collider: Collider,
     pub ground_caster: ShapeCaster,
     pub locked_axes: LockedAxes,
-    pub jump_fall_counter: JumpFallCounter,
+    //pub jump_fall_counter: JumpFallCounter,
     pub movement: MovementBundle,
 }
 
 /// A bundle that contains components for character movement.
 #[derive(Bundle)]
 pub struct MovementBundle {
-    pub acceleration: MovementAcceleration,
     pub damping: MovementDampingFactor,
-    pub jump_impulse: JumpImpulse,
+    //pub jump_impulse: JumpImpulse,
+    pub run_bundle: RunBundle,
+    pub jump_bundle: JumpBundle,
+    pub fall_bundle: FallBundle,
     pub max_slope_angle: MaxSlopeAngle,
-    pub fall_gravity_scale: FallGravityScale,
+    //pub fall_gravity_scale: FallGravityScale,
     pub gravity_scale: GravityScale,
     pub hang_timer: HangTime,
-    pub max_jump_count: MaxJumpCount
+    //pub max_jump_count: MaxJumpCount
 }
 
 impl MovementBundle {
     pub fn new(
-        acceleration: Scalar,
         damping: Scalar,
-        jump_impulse: Scalar,
+        //jump_impulse: Scalar,
+        run_bundle: RunBundle,
+        jump_bundle: JumpBundle,
+        fall_bundle: FallBundle,
         max_slope_angle: Scalar,
-        fall_gravity_scale: Scalar,
+        //fall_gravity_scale: Scalar,
         hang_duration: u64,
-        max_jump_count: i32
+        //max_jump_count: i32
     ) -> Self {
         let mut hang_timer = Timer::default();
         hang_timer.set_mode(TimerMode::Once);
         hang_timer.set_duration(Duration::from_millis(hang_duration));
         hang_timer.pause();
         Self {
-            acceleration: MovementAcceleration(acceleration),
             damping: MovementDampingFactor(damping),
-            jump_impulse: JumpImpulse(jump_impulse),
+            //jump_impulse: JumpImpulse(jump_impulse),
+            run_bundle,
+            jump_bundle,
+            fall_bundle,
             max_slope_angle: MaxSlopeAngle(max_slope_angle),
-            fall_gravity_scale: FallGravityScale(fall_gravity_scale),
-            gravity_scale: GravityScale(1.),
+            //fall_gravity_scale: FallGravityScale(fall_gravity_scale),
+            gravity_scale: GravityScale(0.),
             hang_timer: HangTime(hang_timer),
-            max_jump_count: MaxJumpCount(max_jump_count)
+            //max_jump_count: MaxJumpCount(max_jump_count)
         }
     }
 }
@@ -108,13 +278,12 @@ impl MovementBundle {
 impl Default for MovementBundle {
     fn default() -> Self {
         Self::new(
-            30.0, 
             0.9, 
-            7.0, 
+            RunBundle::default(),
+            JumpBundle::default(), 
+            FallBundle::default(),
             PI * 0.45,
-            1.5,
             100,
-            2
         )
     }
 }
@@ -134,22 +303,20 @@ impl CharacterControllerBundle {
                 //TODO: Find a better max hit number, may be a problem with more rigid bodies
                 .with_max_hits(30),
             locked_axes: LockedAxes::ROTATION_LOCKED,
-            jump_fall_counter: JumpFallCounter(0),
             movement: MovementBundle::default(),
         }
     }
 
     pub fn with_movement(
         mut self,
-        acceleration: Scalar,
         damping: Scalar,
-        jump_impulse: Scalar,
+        run_bundle: RunBundle,
+        jump_bundle: JumpBundle,
+        fall_bundle: FallBundle,
         max_slope_angle: Scalar,
-        fall_gravity_scale: Scalar,
         hang_duration: u64,
-        max_jump_count: i32
     ) -> Self {
-        self.movement = MovementBundle::new(acceleration, damping, jump_impulse, max_slope_angle, fall_gravity_scale, hang_duration, max_jump_count);
+        self.movement = MovementBundle::new(damping, run_bundle, jump_bundle, fall_bundle, max_slope_angle, hang_duration);
         self
     }
 }
