@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 
 use bevy_light_2d::light::{AmbientLight2d, PointLight2d, PointLight2dBundle};
 use rand::Rng;
@@ -34,6 +34,7 @@ fn main() {
                 //WorldInspectorPlugin::new()
         ))
         .insert_resource(Gravity(Vec2::NEG_Y * 1200.))
+        .insert_resource(ClearColor(Color::linear_rgb(0.3, 0.2, 0.0)))
         .add_systems(Startup, setup)
         .run();
 }
@@ -68,8 +69,8 @@ fn setup(
                     20.,
                     380.,
                     550,
-                    Vec2::new(0.45, 0.1),
-                    Vec2::new(0.45, 0.1)
+                    Vec2::new(0.5, 0.5),
+                    Vec2::new(0.5, 0.5)
                 ),
                 JumpBundle::new(
                     600.,
@@ -79,11 +80,12 @@ fn setup(
                     Vec2::new(0.7, 0.9),
                 ),
                 FallBundle::new(
+                    // TODO: Get rid of initial fall speed??
                     -0.,
-                    -280.,
-                    550,
-                    Vec2::new(0.50, 0.5),
-                    Vec2::new(0.50, 0.5)
+                    -1000.,
+                    450,
+                    Vec2::new(0.0, 1.0),
+                    Vec2::new(0.50, 1.0)
                 ),
                 (30.0 as Scalar).to_radians(),
                 100,
@@ -104,9 +106,24 @@ fn setup(
                     Vec2::new(0., -10.)
                 ), 
                 state: GraphicsState::Falling,
-                animation_list: AnimationList(vec![
-                    StateAnimation::new_timer(12, 17, GraphicsState::Idle, 250)
-                ])
+                animation_list: AnimationList(HashMap::from([
+                        (GraphicsState::Idle, StateAnimation::new_timer(12, 17, 450)),
+                        (GraphicsState::Running, StateAnimation::new_timer(0, 5, 300)),
+                        (GraphicsState::Jumping, StateAnimation::new_velocity_list(6, 11, vec![
+                            100.,
+                            200.,
+                            300.,
+                            400.,
+                            500.,
+                        ])),
+                        (GraphicsState::Falling, StateAnimation::new_velocity_list(11, 6, vec![
+                            -10.,
+                            -100.,
+                            -220.,
+                            -230.,
+                            -250.,
+                        ])),
+                ])),
                 //state_animation: StateAnimation {
                 //    idle_indexs: (12, 17),
                 //    running_indexs: (0,5),
@@ -129,11 +146,12 @@ fn setup(
             //}
         )
     );
-    commands.spawn(PlatformBundle::default());
-    for _i in 0..10 {
+    commands.spawn(PlatformBundle::new(0., -100., 5000., 10.));
+    //commands.spawn(PlatformBundle::default());
+    for _i in 0..15 {
         let mut rng = rand::thread_rng();
-        let x = rng.gen_range(-200.0..200.0);
-        let y = rng.gen_range(-100.0..600.0);
+        let x = rng.gen_range(-250.0..250.0);
+        let y = rng.gen_range(20.0..1000.0);
         let oset = rng.gen_range(-45.0..45.);
         if rng.gen_bool(0.5) {
             commands.spawn((
@@ -143,7 +161,7 @@ fn setup(
                     intensity: 3.5,
                     cast_shadows: true,
                     falloff: 4.5,
-                    color: Color::linear_rgb(0.6, 1., 0.8)
+                    color: Color::WHITE,
                 }
             ));
         } else {
@@ -151,11 +169,11 @@ fn setup(
                 PlatformBundle::default().with_location(x,y),
             ));
         }
-        commands.spawn(PlatformBundle::new_wall().with_location(x+oset,y+20.));
+        commands.spawn(PlatformBundle::default_wall().with_location(x+oset,y+20.));
     }
-    commands.spawn_batch(
-        vec![PlatformBundle::default().with_random_location(); 3]
-    );
+    //commands.spawn_batch(
+    //    vec![PlatformBundle::default().with_random_location(); 3]
+    //);
     commands.spawn((
         Name::new("Carrot Sword"),
         GraphicsBundle::new(
@@ -166,7 +184,8 @@ fn setup(
             1,
             Vec2::new(100.,0.)
         )
-            .with_anchor(Anchor::BottomRight),
+            .with_anchor(Anchor::BottomRight)
+            .with_z_index(10.),
         ItemBundle::default()
             //.with_position(50.,-50.)
             .with_use_accel(CubicSegment::new_bezier((0.25, 0.1), (0.25, 1.)))
@@ -181,7 +200,6 @@ pub struct PlatformBundle {
     pub collider: Collider,
     pub friction: Friction,
     pub sprite_bundle: SpriteBundle,
-    pub light: PointLight
 }
 
 impl Default for PlatformBundle {
@@ -199,28 +217,44 @@ impl Default for PlatformBundle {
                 transform: Transform::from_xyz(0., -100., 0.),    
                 ..default()
             },
-            light: PointLight::default()
         }
     }
 }
 
 impl PlatformBundle {
-    pub fn new_wall() -> Self {
+    pub fn new(x: f32, y: f32, width: f32, height: f32) -> Self {
         Self {
             rigid_body: RigidBody::Static, 
-            collider: Collider::rectangle(10.0, 30.0),
+            collider: Collider::rectangle(width, height),
             friction: Friction::ZERO,
             sprite_bundle: SpriteBundle {
                 sprite: Sprite {
                     color: Color::WHITE,
-                    custom_size: Some(Vec2::new(10., 30.)),
+                    custom_size: Some(Vec2::new(width, height)),
                     ..Default::default()
                 },
-                transform: Transform::from_xyz(0., -100., 0.),    
+                transform: Transform::from_xyz(x, y, 0.),    
                 ..Default::default()
             },
-            light: PointLight::default()
         }
+    }
+    pub fn default_wall() -> Self {
+        Self::new(0., -100., 10., 30.,)
+        //Self {
+        //    rigid_body: RigidBody::Static, 
+        //    collider: Collider::rectangle(10.0, 30.0),
+        //    friction: Friction::ZERO,
+        //    sprite_bundle: SpriteBundle {
+        //        sprite: Sprite {
+        //            color: Color::WHITE,
+        //            custom_size: Some(Vec2::new(10., 30.)),
+        //            ..Default::default()
+        //        },
+        //        transform: Transform::from_xyz(0., -100., 0.),    
+        //        ..Default::default()
+        //    },
+        //    light: PointLight::default()
+        //}
     }
     pub fn with_random_location(mut self) -> Self {
         let mut rng = rand::thread_rng();

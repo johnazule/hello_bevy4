@@ -18,7 +18,7 @@ impl Plugin for CharacterControllerPlugin {
                 movement_validation,
                 jump_fall,
                 run,
-                apply_movement_damping,
+                apply_air_ground_movement_damping,
             )
                 .chain(),
         );
@@ -84,6 +84,9 @@ pub fn update_grounded(
                 hang_time.0.reset();
             }
         } else {
+            if *jump_fall_state != JumpFallState::Jumping {
+                *jump_fall_state = JumpFallState::Falling;
+            }
             // Having to tick timers manually is stupid. Like why? Seriously if I have 100 timers, I
             // have to tick each individually? Be so for real
             hang_time.0.tick(time.delta());
@@ -130,12 +133,12 @@ pub fn jump_fall(
                     return;
                 }
                 // TODO: Jump Curve should goto zero, not accelerate (duh)
-                linear_velocity.y = jump_height.0 * jump_curve.0.ease(jump_timer.0.fraction());
+                linear_velocity.y = jump_height.0 * jump_curve.0.ease(jump_timer.0.fraction_remaining());
             },
             JumpFallState::Falling => {
                 jump_timer.0.reset();
                 fall_timer.0.tick(time.delta());
-                let new_velocity = initial_fall_speed.0 + max_fall_speed.0 * fall_curve.0.ease(fall_timer.0.fraction());
+                let new_velocity = max_fall_speed.0 * fall_curve.0.ease(fall_timer.0.fraction());
                 linear_velocity.y = linear_velocity.y.lerp(new_velocity, 0.1);
             },
             JumpFallState::Idle => {}
@@ -171,9 +174,9 @@ pub fn run (
                 //previous_velocity *= damping_factor.0;
                 run_timer.0.tick(time.delta());
                 let new_velocity = direction * (initial_run_speed.0 + max_run_speed.0 * run_curve.0.ease(run_timer.0.fraction()));
-                info!("Expected: {}", previous_velocity);
-                info!("Current: {}", linear_velocity.x);
-                info!("New: {}\n", new_velocity);
+                //info!("Expected: {}", previous_velocity);
+                //info!("Current: {}", linear_velocity.x);
+                //info!("New: {}\n", new_velocity);
                 run_timer.0.tick(time.delta());
                 linear_velocity.x = new_velocity;
             },
@@ -270,21 +273,22 @@ pub fn movement_validation(
     }
 }
 
-pub fn apply_movement_damping(
-    mut query: Query<(
-        &MovementDampingFactor,
-        &mut LinearVelocity,
-    )>,
-) {
-    for (
-        damping_factor,
-        mut linear_velocity,
-    ) in &mut query {
-        linear_velocity.x *= damping_factor.0;
-    } 
-}
+//pub fn apply_movement_damping(
+//    mut query: Query<(
+//        &MovementDampingFactor,
+//        &mut LinearVelocity,
+//    )>,
+//) {
+//    for (
+//        damping_factor,
+//        mut linear_velocity,
+//    ) in &mut query {
+//        //linear_velocity.x *= damping_factor.0 / 2.;
+//        linear_velocity.x *= 0.5;
+//    } 
+//}
 /// Slows down movement in the X direction.
-pub fn apply_air_movement_damping(
+pub fn apply_air_ground_movement_damping(
     mut query: Query<(
         &MovementDampingFactor,
         &mut LinearVelocity,
@@ -303,6 +307,8 @@ pub fn apply_air_movement_damping(
         }).collect::<Vec<&Entity>>();
         // We could use `LinearDamping`, but we don't want to dampen movement along the Y axis
         if rigid_hits.is_empty() {
+            linear_velocity.x *= 0.6;
+        } else {
             linear_velocity.x *= damping_factor.0;
         }
     }

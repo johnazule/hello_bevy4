@@ -4,7 +4,7 @@ use avian2d::prelude::LinearVelocity;
 use bevy::{ecs::entity, prelude::*};
 use bevy_light_2d::plugin::Light2dPlugin;
 
-use crate::{Facing, AnimationList, StateAnimation, StateChange};
+use crate::{AnimTimer, AnimationList, Facing, Grounded, StateAnimation, StateChange};
 
 use super::prelude::GraphicsState;
 
@@ -16,10 +16,11 @@ impl Plugin for GraphicsPlugin {
             .add_event::<StateChange>()
             .add_systems(Update, (
                 flip_sprite,
-                //state_machine,
-                //set_state,
-                //set_sprite_from_state
+                state_machine,
+                set_state,
+                set_sprite_from_state
             ).chain())
+            .insert_resource(Msaa::Off)
             .add_plugins(Light2dPlugin);
     }
 }
@@ -45,21 +46,21 @@ fn set_state(
     mut state_change_event_reader: EventReader<StateChange>
 ) {
     for graphics_state_change in state_change_event_reader.read() {
-        info!("Here!!");
+        //info!("Here!!");
         let graphics_state_result = query.get_mut(graphics_state_change.entity);
         if graphics_state_result.is_ok() {
             let new_state = graphics_state_change.state.clone();
             let debug_state = new_state.clone();
             *graphics_state_result.unwrap() = new_state;
-            info!("The state ({:?}) has been set!!", debug_state);
+            //info!("The state ({:?}) has been set!!", debug_state);
         }
     }
 }
 fn state_machine(
-    query: Query<(&LinearVelocity, Entity, &GraphicsState)>,
+    query: Query<(&LinearVelocity, Entity, &GraphicsState, Has<Grounded>)>,
     mut state_change_event_writer: EventWriter<StateChange>
 ) {
-    for (linear_velocity, entity, state) in query.iter() {
+    for (linear_velocity, entity, state, grounded) in query.iter() {
         //info!("Linear Velocity (y): {}", linear_velocity.y);
         if linear_velocity.y > 1. {
             if state.is_not_state(&GraphicsState::Jumping) {
@@ -82,6 +83,13 @@ fn state_machine(
                     entity
                 });
             }
+        } else if !grounded {
+            if state.is_not_state(&GraphicsState::Idle) {
+                state_change_event_writer.send(StateChange {
+                    state: GraphicsState::Falling,
+                    entity
+                });
+            }
         } else {
             if state.is_not_state(&GraphicsState::Idle) {
                 state_change_event_writer.send(StateChange {
@@ -96,28 +104,40 @@ fn state_machine(
 }
 
 
-//fn set_sprite_from_state(
-//    mut query: Query<(&GraphicsState, &LinearVelocity, &StateAnimation, &mut StateAnimationSpeed, &mut TextureAtlas)>,
-//    mut time: Res<Time>
-//) {
-//    for (graphics_state, linear_velocity, state_animation, mut state_animation_speed, mut texture_atlas) in query.iter_mut() {
-//        match *graphics_state {
-//            GraphicsState::Jumping => {
-//                texture_atlas.index = state_animation.jumping_indexs.0;
-//            }
-//            GraphicsState::Falling => {
-//                texture_atlas.index = state_animation.falling_indexs.0;
-//            }
-//            GraphicsState::Running => {
-//                state_animation_speed.running_timer.tick(time.delta());
-//                texture_atlas.index = state_animation.running_frame_from_percent(state_animation_speed.running_timer.fraction());
-//            }
-//            GraphicsState::Idle => {
-//                state_animation_speed.idle_timer.tick(time.delta());
-//                let new_index = state_animation.idle_frame_from_percent(state_animation_speed.idle_timer.fraction());
-//                texture_atlas.index = new_index; 
-//            }
-//
-//        } 
-//    }
-//}
+fn set_sprite_from_state(
+    mut query: Query<(&GraphicsState, &LinearVelocity, &mut AnimationList, &mut TextureAtlas)>,
+    time: Res<Time>
+) {
+    for (graphics_state, linear_velocity, mut animation_list, mut texture_atlas) in query.iter_mut() {
+        match animation_list.0.get_mut(graphics_state) {
+            Some(state_animation) => {
+                if state_animation.has_velocity_list() {
+                    //info!("Velocity: {}", linear_velocity.y);
+                    texture_atlas.index = state_animation.frame_from_velocity(linear_velocity.y);
+                } else {
+                    state_animation.anim_timer.tick_timer(time.delta());
+                    texture_atlas.index = state_animation.frame_from_percent();
+                }
+            },
+            None => return
+        }
+        //match *graphics_state {
+        //    GraphicsState::Jumping => {
+        //        texture_atlas.index = state_animation.jumping_indexs.0;
+        //    }
+        //    GraphicsState::Falling => {
+        //        texture_atlas.index = state_animation.falling_indexs.0;
+        //    }
+        //    GraphicsState::Running => {
+        //        state_animation_speed.running_timer.tick(time.delta());
+        //        texture_atlas.index = state_animation.running_frame_from_percent(state_animation_speed.running_timer.fraction());
+        //    }
+        //    GraphicsState::Idle => {
+        //        state_animation_speed.idle_timer.tick(time.delta());
+        //        let new_index = state_animation.idle_frame_from_percent(state_animation_speed.idle_timer.fraction());
+        //        texture_atlas.index = new_index; 
+        //    }
+        //
+        //} 
+    }
+}

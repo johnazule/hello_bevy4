@@ -22,8 +22,8 @@ pub fn keyboard_input(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mouse_input: Res<ButtonInput<MouseButton>>
 ) {
-    let left_pressed = keyboard_input.any_just_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]);
-    let right_pressed = keyboard_input.any_just_pressed([KeyCode::KeyD, KeyCode::ArrowRight]);
+    let left_pressed = keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]);
+    let right_pressed = keyboard_input.any_pressed([KeyCode::KeyD, KeyCode::ArrowRight]);
     let jump_pressed = keyboard_input.any_just_pressed([KeyCode::Space]);
     let fall_pressed = keyboard_input.any_just_pressed([KeyCode::KeyS, KeyCode::ArrowDown]);
 
@@ -31,16 +31,18 @@ pub fn keyboard_input(
     let right_released = keyboard_input.any_just_released([KeyCode::KeyD, KeyCode::ArrowRight]);
     let jump_released = keyboard_input.any_just_released([KeyCode::Space]);
 
-    if left_pressed && !right_pressed {
-        movement_event_writer.send(MovementAction::RunLeft);
-    }
-    if left_released && !right_pressed {
+    if left_pressed && right_pressed {
         movement_event_writer.send(MovementAction::RunEnd);
+    } else {
+        if left_pressed {
+            movement_event_writer.send(MovementAction::RunLeft);
+        }
+        if right_pressed {
+            movement_event_writer.send(MovementAction::RunRight);
+        }
     }
-    if right_pressed && !left_pressed{
-        movement_event_writer.send(MovementAction::RunRight);
-    }
-    if right_released && !left_pressed {
+    
+    if (left_released || right_released) && !(left_pressed || right_pressed) {
         movement_event_writer.send(MovementAction::RunEnd);
     }
 

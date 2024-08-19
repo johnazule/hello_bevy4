@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{collections::HashMap, mem, time::Duration};
 
 use bevy::{prelude::*, sprite::Anchor};
 
@@ -19,22 +19,70 @@ pub enum AnimTimer {
     AnimTimer(Timer),
     AnimVelocityList(Vec<f32>)
 }
-#[derive(Component)]
-pub struct AnimationList(pub Vec<StateAnimation>);
+
+impl AnimTimer {
+    pub fn timer_fraction(&self) -> f32 {
+        match self {
+            AnimTimer::AnimTimer(timer) => {
+                timer.fraction()
+            },
+            AnimTimer::AnimVelocityList(_velocity_list) => {
+                panic!("Doesn't have a timer");
+            }
+        }
+    }
+    pub fn tick_timer(&mut self, delta: Duration) {
+        match self {
+            AnimTimer::AnimTimer(timer) => {
+                timer.tick(delta);
+            },
+            AnimTimer::AnimVelocityList(_velocity_list) => {
+                panic!("Doesn't have a timer");
+            }
+        }
+    }
+    pub fn velocity_fraction(&self, velocity: f32) -> f32 {
+        match self {
+            AnimTimer::AnimTimer(_timer) => {
+                panic!("Doesn't have velocity lists");
+            },
+            AnimTimer::AnimVelocityList(velocity_thresholds) => {
+                let mut threshold_index: f32 = 0.;
+                //velocity_thresholds.clone().iter().filter(|threshold| threshold < )
+                for (i, velocity_threshold) in velocity_thresholds.iter().enumerate() {
+                    if velocity.abs() < velocity_threshold.abs() {
+                        break
+                    }
+                    threshold_index = i as f32;
+                }
+                threshold_index / velocity_thresholds.len() as f32
+            }   
+        }
+    }
+}
 
 #[derive(Component)]
+pub struct AnimationList(pub HashMap<GraphicsState, StateAnimation>);
+
+//#[derive(Component)]
 pub struct StateAnimation {
     pub indexes: (usize, usize),
     pub anim_timer: AnimTimer,
-    pub trigger_state: GraphicsState
+    //pub trigger_state: GraphicsState
 }
 
 impl StateAnimation {
-    pub fn new_timer(start: usize, finish: usize, trigger_state: GraphicsState, duration: u64) -> Self {
+    pub fn new_timer(start: usize, finish: usize, /* trigger_state: GraphicsState,*/ duration: u64) -> Self {
         Self {
             indexes: (start, finish),
             anim_timer: AnimTimer::AnimTimer(Timer::new(Duration::from_millis(duration), TimerMode::Repeating)),
-            trigger_state
+            //trigger_state
+        }
+    }
+    pub fn new_velocity_list(start: usize, finish: usize, velocity_list: Vec<f32>) -> Self {
+        Self {
+            indexes: (start, finish),
+            anim_timer: AnimTimer::AnimVelocityList(velocity_list)
         }
     }
     //pub fn new_timer(start: usize, finish: usize, trigger_state: GraphicsState, duration: u64) -> Self {
@@ -45,11 +93,11 @@ impl StateAnimation {
     //    }
     //}
     pub fn frame_range(&self) -> usize {
-        self.indexes.1 - self.indexes.0
+        self.indexes.0.abs_diff(self.indexes.1)
     }
-    pub fn frame_from_percent(&self, percent: f32) -> usize {
+    pub fn frame_from_percent(&self) -> usize {
         if !self.has_velocity_list() {
-            self.indexes.0 + self.frame_range() * ((percent * 100.) as usize) / 100
+            self.indexes.0 + self.frame_range() * ((self.anim_timer.timer_fraction() * 100.) as usize) / 100
         } else {
             panic!("Doesn't have a timer");
         }
@@ -60,8 +108,21 @@ impl StateAnimation {
             AnimTimer::AnimVelocityList(_) => true
         }
     }
-    //pub fn frame_from_velocity(&self, velocity: f32) -> usize {
-    //}
+    pub fn frame_from_velocity(&self, velocity: f32) -> usize {
+        if self.has_velocity_list() {
+            let frame: usize;
+            if self.indexes.0 < self.indexes.1 {
+                frame = self.indexes.0 + self.frame_range() * ((self.anim_timer.velocity_fraction(velocity) * 100.) as usize) / 100;
+            } else {
+                frame = self.indexes.0 - self.frame_range() * ((self.anim_timer.velocity_fraction(velocity) * 100.) as usize) / 100;
+            }
+            //info!("Velocity:\t{}", velocity);
+            //info!("Fram:\t\t{}", frame);
+            frame
+        } else {
+            panic!("Doesn't have a velocity list");
+        }
+    }
 }
 
 //#[derive(Component)]
@@ -83,7 +144,7 @@ impl StateAnimation {
 //    fn with_jump_velocities
 //}
 
-#[derive(Component, Clone, Debug, PartialEq)]
+#[derive(Component, Clone, Debug, PartialEq, Hash, Eq)]
 pub enum GraphicsState {
     Idle,
     Running,
@@ -140,6 +201,10 @@ impl GraphicsBundle {
     }
     pub fn with_anchor(mut self, anchor: Anchor) -> Self {
         self.sprite.sprite.anchor = anchor;
+        self
+    }
+    pub fn with_z_index(mut self, z_index: f32) -> Self {
+        self.sprite.transform.translation.z = z_index;
         self
     }
 }
