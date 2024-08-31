@@ -2,6 +2,7 @@ use std::{collections::HashMap, mem, time::Duration};
 
 use bevy::{prelude::*, sprite::Anchor};
 
+
 /// The direction the entity is facing
 #[derive(Component, Clone, Debug)]
 pub enum Facing {

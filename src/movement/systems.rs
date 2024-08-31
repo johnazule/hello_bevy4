@@ -11,7 +11,7 @@ pub struct CharacterControllerPlugin;
 
 impl Plugin for CharacterControllerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<MovementAction>().add_systems(
+        app.add_event::<MovementEvent>().add_systems(
             Update,
             (
                 update_grounded,
@@ -61,7 +61,15 @@ pub fn update_grounded(
         // The character is grounded if the shape caster has a hit with a normal
         // that isn't too steep.
         let mut rigid_hits = hits.iter().filter(|hit| {
-            grounds.get(hit.entity).unwrap().is_some()
+            let ground_hits = grounds.get(hit.entity);
+            match ground_hits {
+                Ok(hit) => {
+                    hit.is_some()
+                },
+                Err(_) => {
+                    false
+                }
+            }
         });
         let is_grounded = rigid_hits.any(|hit| {
         //let is_grounded = hits.iter().any(|hit| {
@@ -75,8 +83,8 @@ pub fn update_grounded(
         if is_grounded {
             //info!("This fucker is on the ground");
             commands.entity(entity).insert(Grounded);
-            jump_fall_counter.0 = 0;
             if !is_already_grounded {
+                jump_fall_counter.0 = 0;
                 jump_timer.0.reset();
                 fall_timer.0.reset();
                 *jump_fall_state = JumpFallState::Idle;
@@ -124,7 +132,7 @@ pub fn jump_fall(
         max_fall_speed,
         fall_curve
     ) in query.iter_mut() {
-        info!("Jump Fall State: {:?}", jump_fall_state);
+        //info!("Jump Fall State: {:?}", jump_fall_state);
         match *jump_fall_state {
             JumpFallState::Jumping => {
                 jump_timer.0.tick(time.delta());
@@ -154,7 +162,7 @@ pub fn run (
         &InitialRunSpeed,
         &MaxRunSpeed,
         &RunCurve,
-        &MovementDampingFactor
+        &GroundMovementDampingFactor
     )>,
     time: Res<Time>
 ) {
@@ -189,7 +197,7 @@ pub fn run (
 /// Responds to [`MovementAction`] events and moves character controllers accordingly.
 pub fn movement_validation(
     time: Res<Time>,
-    mut movement_event_reader: EventReader<MovementAction>,
+    mut movement_event_reader: EventReader<MovementEvent>,
     mut controllers: Query<(
         &mut JumpFallState,
         &mut MoveState,
@@ -207,21 +215,20 @@ pub fn movement_validation(
     let delta_time = time.delta_seconds_f64().adjust_precision();
 
     for event in movement_event_reader.read() {
-        for (
-                mut jump_fall_state,     
-                mut move_state,
-                //jump_impulse,
-                mut linear_velocity,
-                hang_time,
-                mut jump_fall_counter,
-                mut run_timer,
-                max_jump_counter,
-                mut facing,
-                is_grounded
-            ) in
-            &mut controllers
-        {
-            match event {
+        let event_controller = controllers.get_mut(event.entity);
+        if let Ok((
+            mut jump_fall_state,     
+            mut move_state,
+            //jump_impulse,
+            mut linear_velocity,
+            hang_time,
+            mut jump_fall_counter,
+            mut run_timer,
+            max_jump_counter,
+            mut facing,
+            is_grounded
+        )) = event_controller {
+            match event.action {
                 // TODO: Decide if this should be RunRight or MoveRight
                 MovementAction::RunRight => {
                     *facing = Facing::Right;
@@ -250,6 +257,7 @@ pub fn movement_validation(
                         //linear_velocity.y += jump_height.0 * jump_curve.0.ease(jump_timer.0.fraction());
                     }
                     info!("Grounded:\t\t{}", is_grounded);
+                    info!("Jump Fall State:\t{:?}", jump_fall_state);
                     info!("Has Jumps Left:\t{}", has_jumps_left);
                     info!("Is Base Jump:\t\t{}", is_base_jump);
                     info!("Still Hanging:\t{}", still_hanging);
@@ -290,7 +298,8 @@ pub fn movement_validation(
 /// Slows down movement in the X direction.
 pub fn apply_air_ground_movement_damping(
     mut query: Query<(
-        &MovementDampingFactor,
+        &GroundMovementDampingFactor,
+        &AirMovementDampingFactor,
         &mut LinearVelocity,
         &CollidingEntities
         //&Collision
@@ -298,7 +307,8 @@ pub fn apply_air_ground_movement_damping(
     grounds: Query<Option<&RigidBody>, (With<Collider>, Without<Player>)>,
 ) {
     for (
-        damping_factor,
+        ground_damping_factor,
+        air_damping_factor,
         mut linear_velocity,
         colliding_entities
     ) in &mut query {
@@ -307,9 +317,9 @@ pub fn apply_air_ground_movement_damping(
         }).collect::<Vec<&Entity>>();
         // We could use `LinearDamping`, but we don't want to dampen movement along the Y axis
         if rigid_hits.is_empty() {
-            linear_velocity.x *= 0.6;
+            linear_velocity.x *= air_damping_factor.0;
         } else {
-            linear_velocity.x *= damping_factor.0;
+            linear_velocity.x *= ground_damping_factor.0;
         }
     }
 }

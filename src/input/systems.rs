@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use avian2d::math::*;
 
-use crate::{movement::prelude::*, Equipped, InUse, Item, ItemAction};
+use crate::{movement::prelude::*, Equipped, InUse, Item, ItemAction, Player};
 
 pub struct InputControllerPlugin;
 
@@ -16,12 +16,14 @@ impl Plugin for InputControllerPlugin {
 
 /// Sends [`MovementAction`] events based on keyboard input.
 pub fn keyboard_input(
-    mut movement_event_writer: EventWriter<MovementAction>,
+    mut movement_event_writer: EventWriter<MovementEvent>,
     mut item_event_writer: EventWriter<ItemAction>,
     equipped_item: Query<(&Equipped, Has<InUse>), With<Item>>,
+    player_query: Query<Entity, (With<Player>, Without<Item>)>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mouse_input: Res<ButtonInput<MouseButton>>
 ) {
+    let player_entity = player_query.single();
     let left_pressed = keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]);
     let right_pressed = keyboard_input.any_pressed([KeyCode::KeyD, KeyCode::ArrowRight]);
     let jump_pressed = keyboard_input.any_just_pressed([KeyCode::Space]);
@@ -32,28 +34,28 @@ pub fn keyboard_input(
     let jump_released = keyboard_input.any_just_released([KeyCode::Space]);
 
     if left_pressed && right_pressed {
-        movement_event_writer.send(MovementAction::RunEnd);
+        movement_event_writer.send(MovementEvent::new(player_entity, MovementAction::RunEnd));
     } else {
         if left_pressed {
-            movement_event_writer.send(MovementAction::RunLeft);
+            movement_event_writer.send(MovementEvent::new(player_entity, MovementAction::RunLeft));
         }
         if right_pressed {
-            movement_event_writer.send(MovementAction::RunRight);
+            movement_event_writer.send(MovementEvent::new(player_entity, MovementAction::RunRight));
         }
     }
     
     if (left_released || right_released) && !(left_pressed || right_pressed) {
-        movement_event_writer.send(MovementAction::RunEnd);
+        movement_event_writer.send(MovementEvent::new(player_entity, MovementAction::RunEnd));
     }
 
     if jump_pressed {
-        movement_event_writer.send(MovementAction::JumpStart);
+        movement_event_writer.send(MovementEvent::new(player_entity, MovementAction::JumpStart));
     }
     if jump_released {
-        movement_event_writer.send(MovementAction::JumpEnd);
+        movement_event_writer.send(MovementEvent::new(player_entity, MovementAction::JumpEnd));
     }
     if fall_pressed {
-        movement_event_writer.send(MovementAction::Fall);
+        movement_event_writer.send(MovementEvent::new(player_entity, MovementAction::Fall));
     }
     if keyboard_input.just_pressed(KeyCode::KeyQ) {
         item_event_writer.send(ItemAction::Start);

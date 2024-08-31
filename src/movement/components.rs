@@ -4,8 +4,29 @@ use avian2d::{math::*, prelude::*};
 use bevy::prelude::*;
 
 
+/// Collision Layers
+#[derive(PhysicsLayer)]
+pub enum GameLayer {
+    NOTHING,
+    CHARACTER,
+    GROUND
+}
 /// An event sent for a movement input action.
 #[derive(Event)]
+pub struct MovementEvent {
+    pub entity: Entity,
+    pub action: MovementAction
+}
+
+impl MovementEvent {
+    pub fn new(entity: Entity, action: MovementAction) -> Self {
+        Self {
+            entity,
+            action
+        }
+    }
+}
+
 pub enum MovementAction {
     RunRight,
     RunLeft,
@@ -34,7 +55,11 @@ pub struct MovementAcceleration(pub Scalar);
 
 /// The damping factor used for slowing down movement.
 #[derive(Component, Reflect)]
-pub struct MovementDampingFactor(pub Scalar);
+pub struct GroundMovementDampingFactor(pub Scalar);
+
+/// The damping factor used for slowing down movement.
+#[derive(Component, Reflect)]
+pub struct AirMovementDampingFactor(pub Scalar);
 
 /// The strength of a jump.
 #[derive(Component, Reflect)]
@@ -191,8 +216,8 @@ impl FallBundle {
 impl Default for FallBundle {
     fn default() -> Self {
         Self::new(
-            5.,
-            30.,
+            -5.,
+            -30.,
             250,
             Vec2::new(0.25, 0.1),
             Vec2::new(0.25, 1.)
@@ -225,6 +250,7 @@ pub struct CharacterControllerBundle {
     pub collider: Collider,
     pub ground_caster: ShapeCaster,
     pub locked_axes: LockedAxes,
+    pub collision_layer: CollisionLayers,
     //pub jump_fall_counter: JumpFallCounter,
     pub movement: MovementBundle,
 }
@@ -232,7 +258,8 @@ pub struct CharacterControllerBundle {
 /// A bundle that contains components for character movement.
 #[derive(Bundle)]
 pub struct MovementBundle {
-    pub damping: MovementDampingFactor,
+    pub ground_damping: GroundMovementDampingFactor,
+    pub air_damping: AirMovementDampingFactor,
     //pub jump_impulse: JumpImpulse,
     pub run_bundle: RunBundle,
     pub jump_bundle: JumpBundle,
@@ -246,7 +273,8 @@ pub struct MovementBundle {
 
 impl MovementBundle {
     pub fn new(
-        damping: Scalar,
+        ground_damping: Scalar,
+        air_damping: Scalar,
         //jump_impulse: Scalar,
         run_bundle: RunBundle,
         jump_bundle: JumpBundle,
@@ -261,7 +289,8 @@ impl MovementBundle {
         hang_timer.set_duration(Duration::from_millis(hang_duration));
         hang_timer.pause();
         Self {
-            damping: MovementDampingFactor(damping),
+            ground_damping: GroundMovementDampingFactor(ground_damping),
+            air_damping: AirMovementDampingFactor(air_damping),
             //jump_impulse: JumpImpulse(jump_impulse),
             run_bundle,
             jump_bundle,
@@ -278,6 +307,7 @@ impl MovementBundle {
 impl Default for MovementBundle {
     fn default() -> Self {
         Self::new(
+            0.9, 
             0.9, 
             RunBundle::default(),
             JumpBundle::default(), 
@@ -303,20 +333,22 @@ impl CharacterControllerBundle {
                 //TODO: Find a better max hit number, may be a problem with more rigid bodies
                 .with_max_hits(30),
             locked_axes: LockedAxes::ROTATION_LOCKED,
+            collision_layer: CollisionLayers::new(GameLayer::CHARACTER, [GameLayer::GROUND]),
             movement: MovementBundle::default(),
         }
     }
 
     pub fn with_movement(
         mut self,
-        damping: Scalar,
+        ground_damping: Scalar,
+        air_damping: Scalar,
         run_bundle: RunBundle,
         jump_bundle: JumpBundle,
         fall_bundle: FallBundle,
         max_slope_angle: Scalar,
         hang_duration: u64,
     ) -> Self {
-        self.movement = MovementBundle::new(damping, run_bundle, jump_bundle, fall_bundle, max_slope_angle, hang_duration);
+        self.movement = MovementBundle::new(ground_damping, air_damping, run_bundle, jump_bundle, fall_bundle, max_slope_angle, hang_duration);
         self
     }
 }

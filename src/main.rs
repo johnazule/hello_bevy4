@@ -7,18 +7,24 @@ use avian2d::{math::*, prelude::*};
 //use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy::{prelude::*, sprite::Anchor};
 
-mod movement;
-mod items;
-mod item_list;
-mod input;
 mod camera;
 mod graphics;
+mod input;
+mod items;
+mod level;
+mod movement;
+mod npcs;
 
-use movement::prelude::*;
-use items::prelude::*;
-use input::prelude::*;
+mod item_list;
+
 use camera::prelude::*;
 use graphics::prelude::*;
+use input::prelude::*;
+use items::prelude::*;
+use level::prelude::*;
+use movement::prelude::*;
+use npcs::prelude::*;
+
 use item_list::*;
 
 fn main() {
@@ -30,7 +36,9 @@ fn main() {
                 InputControllerPlugin,
                 ItemPlugin,
                 CameraControllerPlugin,
-                GraphicsPlugin
+                GraphicsPlugin,
+                NPCPlugin,
+                LevelPlugin
                 //WorldInspectorPlugin::new()
         ))
         .insert_resource(Gravity(Vec2::NEG_Y * 1200.))
@@ -65,6 +73,7 @@ fn setup(
             Player,
             CharacterControllerBundle::new(Collider::rectangle(10.0, 20.0)).with_movement(
                 0.80,
+                0.50,
                 RunBundle::new(
                     20.,
                     380.,
@@ -73,17 +82,17 @@ fn setup(
                     Vec2::new(0.5, 0.5)
                 ),
                 JumpBundle::new(
-                    600.,
-                    250,
-                    2,
+                    800.,
+                    200,
+                    3,
                     Vec2::new(0., 1.),
                     Vec2::new(0.7, 0.9),
                 ),
                 FallBundle::new(
                     // TODO: Get rid of initial fall speed??
                     -0.,
-                    -1000.,
-                    450,
+                    -800.,
+                    550,
                     Vec2::new(0.0, 1.0),
                     Vec2::new(0.50, 1.0)
                 ),
@@ -134,7 +143,7 @@ fn setup(
                 //    idle_timer: Timer::new(Duration::from_millis(550), TimerMode::Repeating),
                 //    running_timer: Timer::new(Duration::from_millis(250), TimerMode::Repeating),
                 //}
-            }
+            },
             //SpriteBundle {
             //    texture: hehe_texture_handle,
             //    transform: Transform::from_xyz(0., -10., 0.).with_scale(Vec3::splat(2.)),
@@ -144,7 +153,8 @@ fn setup(
             //    layout: hehe_texture_atlas_layout,
             //    index: 1
             //}
-        )
+           HealthBundle::new(100.) 
+        ),
     );
     commands.spawn(PlatformBundle::new(0., -100., 5000., 10.));
     //commands.spawn(PlatformBundle::default());
@@ -192,6 +202,45 @@ fn setup(
             .with_use_time(250)
             .with_swing_desc(4. * PI / 3., PI / 6., 4.* PI / 3.)
     ));
+    commands.spawn((
+        Name::new("Strawberry Dagger"),
+        GraphicsBundle::new(
+            asset_server.load("sprites/strawberry.png"),
+            &mut texture_atlas_layouts,
+            UVec2::new(3,6),
+            1,
+            1,
+            Vec2::new(-100.,0.)
+        )
+            .with_anchor(Anchor::BottomRight)
+            .with_z_index(10.),
+        ItemBundle::default()
+            //.with_position(50.,-50.)
+            .with_use_accel(CubicSegment::new_bezier((0.25, 0.1), (0.25, 1.)))
+            .with_use_time(180)
+            .with_swing_desc(PI/6., PI/12., PI/6.)
+    ));
+    commands.spawn((
+        Name::new("Haha"),
+        GraphicsBundle::new(
+            asset_server.load("sprites/haha.png"),
+            &mut texture_atlas_layouts,
+            UVec2::new(20,50),
+            4,
+            2,
+            Vec2::new(100., 100.),
+        ),
+        CharacterControllerBundle::new(Collider::rectangle(20., 50.)).with_movement(
+            0.8,
+            0.8,
+            RunBundle::default(),
+            JumpBundle::default(),
+           
+            FallBundle::default(),
+            40.,
+            30),
+        HealthBundle::new(100.)
+    ));
 }
 
 #[derive(Bundle, Clone)]
@@ -199,6 +248,7 @@ pub struct PlatformBundle {
     pub rigid_body: RigidBody,
     pub collider: Collider,
     pub friction: Friction,
+    pub collision_layer: CollisionLayers,
     pub sprite_bundle: SpriteBundle,
 }
 
@@ -208,6 +258,7 @@ impl Default for PlatformBundle {
             rigid_body: RigidBody::Static, 
             collider: Collider::rectangle(100.0, 10.0),
             friction: Friction::new(0.5).with_static_coefficient(0.),
+            collision_layer: CollisionLayers::new(GameLayer::GROUND,[GameLayer::CHARACTER]),
             sprite_bundle: SpriteBundle {
                 sprite: Sprite {
                     color: Color::WHITE,
@@ -227,6 +278,7 @@ impl PlatformBundle {
             rigid_body: RigidBody::Static, 
             collider: Collider::rectangle(width, height),
             friction: Friction::ZERO,
+            collision_layer: CollisionLayers::new(GameLayer::GROUND, [GameLayer::CHARACTER]),
             sprite_bundle: SpriteBundle {
                 sprite: Sprite {
                     color: Color::WHITE,
