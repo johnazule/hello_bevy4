@@ -23,57 +23,61 @@ pub fn keyboard_input(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mouse_input: Res<ButtonInput<MouseButton>>
 ) {
-    let player_entity = player_query.single();
-    let left_pressed = keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]);
-    let right_pressed = keyboard_input.any_pressed([KeyCode::KeyD, KeyCode::ArrowRight]);
-    let jump_pressed = keyboard_input.any_just_pressed([KeyCode::Space]);
-    let fall_pressed = keyboard_input.any_just_pressed([KeyCode::KeyS, KeyCode::ArrowDown]);
+    let player_entity_result = player_query.get_single();
+    if let Ok(player_entity) = player_entity_result {
+        let left_pressed = keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]);
+        let right_pressed = keyboard_input.any_pressed([KeyCode::KeyD, KeyCode::ArrowRight]);
+        let jump_pressed = keyboard_input.any_just_pressed([KeyCode::Space]);
+        let fall_pressed = keyboard_input.any_just_pressed([KeyCode::KeyS, KeyCode::ArrowDown]);
 
-    let left_released = keyboard_input.any_just_released([KeyCode::KeyA, KeyCode::ArrowLeft]);
-    let right_released = keyboard_input.any_just_released([KeyCode::KeyD, KeyCode::ArrowRight]);
-    let jump_released = keyboard_input.any_just_released([KeyCode::Space]);
+        let left_released = keyboard_input.any_just_released([KeyCode::KeyA, KeyCode::ArrowLeft]);
+        let right_released = keyboard_input.any_just_released([KeyCode::KeyD, KeyCode::ArrowRight]);
+        let jump_released = keyboard_input.any_just_released([KeyCode::Space]);
 
-    if left_pressed && right_pressed {
-        movement_event_writer.send(MovementEvent::new(player_entity, MovementAction::RunEnd));
+        if left_pressed && right_pressed {
+            movement_event_writer.send(MovementEvent::new(player_entity, MovementAction::RunEnd));
+        } else {
+            if left_pressed {
+                movement_event_writer.send(MovementEvent::new(player_entity, MovementAction::RunLeft));
+            }
+            if right_pressed {
+                movement_event_writer.send(MovementEvent::new(player_entity, MovementAction::RunRight));
+            }
+        }
+        
+        if (left_released || right_released) && !(left_pressed || right_pressed) {
+            movement_event_writer.send(MovementEvent::new(player_entity, MovementAction::RunEnd));
+        }
+
+        if jump_pressed {
+            movement_event_writer.send(MovementEvent::new(player_entity, MovementAction::JumpStart));
+        }
+        if jump_released {
+            movement_event_writer.send(MovementEvent::new(player_entity, MovementAction::JumpEnd));
+        }
+        if fall_pressed {
+            movement_event_writer.send(MovementEvent::new(player_entity, MovementAction::Fall));
+        }
+        if keyboard_input.just_pressed(KeyCode::KeyQ) {
+            item_event_writer.send(ItemAction::Start);
+        }
+        if keyboard_input.just_pressed(KeyCode::KeyE) {
+            item_event_writer.send(ItemAction::End);
+        }
+        if keyboard_input.just_pressed(KeyCode::KeyR) {
+            item_event_writer.send(ItemAction::Rest);
+        }
+
+        if mouse_input.pressed(MouseButton::Left) {
+            let Ok((_equipped, in_use)) = equipped_item.get_single() else {
+                return;
+            };
+            if !in_use {
+                item_event_writer.send(ItemAction::Use);
+            }
+        }
     } else {
-        if left_pressed {
-            movement_event_writer.send(MovementEvent::new(player_entity, MovementAction::RunLeft));
-        }
-        if right_pressed {
-            movement_event_writer.send(MovementEvent::new(player_entity, MovementAction::RunRight));
-        }
-    }
-    
-    if (left_released || right_released) && !(left_pressed || right_pressed) {
-        movement_event_writer.send(MovementEvent::new(player_entity, MovementAction::RunEnd));
-    }
 
-    if jump_pressed {
-        movement_event_writer.send(MovementEvent::new(player_entity, MovementAction::JumpStart));
-    }
-    if jump_released {
-        movement_event_writer.send(MovementEvent::new(player_entity, MovementAction::JumpEnd));
-    }
-    if fall_pressed {
-        movement_event_writer.send(MovementEvent::new(player_entity, MovementAction::Fall));
-    }
-    if keyboard_input.just_pressed(KeyCode::KeyQ) {
-        item_event_writer.send(ItemAction::Start);
-    }
-    if keyboard_input.just_pressed(KeyCode::KeyE) {
-        item_event_writer.send(ItemAction::End);
-    }
-    if keyboard_input.just_pressed(KeyCode::KeyR) {
-        item_event_writer.send(ItemAction::Rest);
-    }
-
-    if mouse_input.pressed(MouseButton::Left) {
-        let Ok((_equipped, in_use)) = equipped_item.get_single() else {
-            return;
-        };
-        if !in_use {
-            item_event_writer.send(ItemAction::Use);
-        }
     }
 }
 

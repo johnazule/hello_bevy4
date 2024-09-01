@@ -1,11 +1,12 @@
-use std::{collections::HashMap, mem, time::Duration};
+use std::{collections::HashMap, default, mem, time::Duration};
 
 use bevy::{prelude::*, sprite::Anchor};
 
 
 /// The direction the entity is facing
-#[derive(Component, Clone, Debug)]
+#[derive(Component, Clone, Debug, Default)]
 pub enum Facing {
+    #[default]
     Left,
     Right,
 }
@@ -62,7 +63,7 @@ impl AnimTimer {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct AnimationList(pub HashMap<GraphicsState, StateAnimation>);
 
 //#[derive(Component)]
@@ -145,8 +146,9 @@ impl StateAnimation {
 //    fn with_jump_velocities
 //}
 
-#[derive(Component, Clone, Debug, PartialEq, Hash, Eq)]
+#[derive(Component, Clone, Debug, PartialEq, Hash, Eq, Default)]
 pub enum GraphicsState {
+    #[default]
     Idle,
     Running,
     Jumping,
@@ -162,14 +164,15 @@ impl GraphicsState {
     }
 }
 
-#[derive(Bundle)]
+#[derive(Bundle, Default)]
 pub struct PlayerGraphicsBundle {
-    pub graphics_bundle: GraphicsBundle,
+    //pub graphics_bundle: GraphicsBundle,
+    pub facing: Facing,
     pub state: GraphicsState,
     pub animation_list: AnimationList,
 }
 
-#[derive(Bundle)]
+#[derive(Bundle, Default)]
 pub struct GraphicsBundle {
     pub sprite: SpriteBundle,
     pub texture_atlas: TextureAtlas,
@@ -207,5 +210,10 @@ impl GraphicsBundle {
     pub fn with_z_index(mut self, z_index: f32) -> Self {
         self.sprite.transform.translation.z = z_index;
         self
+    }
+    pub fn with_transform(mut self, transform: Transform) -> Self {
+        self.sprite.transform = transform;
+        self
+
     }
 }
