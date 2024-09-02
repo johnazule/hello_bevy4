@@ -1,7 +1,6 @@
-use std::{collections::HashMap, default, mem, time::Duration};
+use std::{collections::HashMap, time::Duration};
 
 use bevy::{prelude::*, sprite::Anchor};
-
 
 /// The direction the entity is facing
 #[derive(Component, Clone, Debug, Default)]
@@ -14,20 +13,18 @@ pub enum Facing {
 #[derive(Event)]
 pub struct StateChange {
     pub state: GraphicsState,
-    pub entity: Entity
+    pub entity: Entity,
 }
 
 pub enum AnimTimer {
     AnimTimer(Timer),
-    AnimVelocityList(Vec<f32>)
+    AnimVelocityList(Vec<f32>),
 }
 
 impl AnimTimer {
     pub fn timer_fraction(&self) -> f32 {
         match self {
-            AnimTimer::AnimTimer(timer) => {
-                timer.fraction()
-            },
+            AnimTimer::AnimTimer(timer) => timer.fraction(),
             AnimTimer::AnimVelocityList(_velocity_list) => {
                 panic!("Doesn't have a timer");
             }
@@ -37,7 +34,7 @@ impl AnimTimer {
         match self {
             AnimTimer::AnimTimer(timer) => {
                 timer.tick(delta);
-            },
+            }
             AnimTimer::AnimVelocityList(_velocity_list) => {
                 panic!("Doesn't have a timer");
             }
@@ -47,18 +44,18 @@ impl AnimTimer {
         match self {
             AnimTimer::AnimTimer(_timer) => {
                 panic!("Doesn't have velocity lists");
-            },
+            }
             AnimTimer::AnimVelocityList(velocity_thresholds) => {
                 let mut threshold_index: f32 = 0.;
                 //velocity_thresholds.clone().iter().filter(|threshold| threshold < )
                 for (i, velocity_threshold) in velocity_thresholds.iter().enumerate() {
                     if velocity.abs() < velocity_threshold.abs() {
-                        break
+                        break;
                     }
                     threshold_index = i as f32;
                 }
                 threshold_index / velocity_thresholds.len() as f32
-            }   
+            }
         }
     }
 }
@@ -74,17 +71,24 @@ pub struct StateAnimation {
 }
 
 impl StateAnimation {
-    pub fn new_timer(start: usize, finish: usize, /* trigger_state: GraphicsState,*/ duration: u64) -> Self {
+    pub fn new_timer(
+        start: usize,
+        finish: usize,
+        /* trigger_state: GraphicsState,*/ duration: u64,
+    ) -> Self {
         Self {
             indexes: (start, finish),
-            anim_timer: AnimTimer::AnimTimer(Timer::new(Duration::from_millis(duration), TimerMode::Repeating)),
+            anim_timer: AnimTimer::AnimTimer(Timer::new(
+                Duration::from_millis(duration),
+                TimerMode::Repeating,
+            )),
             //trigger_state
         }
     }
     pub fn new_velocity_list(start: usize, finish: usize, velocity_list: Vec<f32>) -> Self {
         Self {
             indexes: (start, finish),
-            anim_timer: AnimTimer::AnimVelocityList(velocity_list)
+            anim_timer: AnimTimer::AnimVelocityList(velocity_list),
         }
     }
     //pub fn new_timer(start: usize, finish: usize, trigger_state: GraphicsState, duration: u64) -> Self {
@@ -99,7 +103,8 @@ impl StateAnimation {
     }
     pub fn frame_from_percent(&self) -> usize {
         if !self.has_velocity_list() {
-            self.indexes.0 + self.frame_range() * ((self.anim_timer.timer_fraction() * 100.) as usize) / 100
+            self.indexes.0
+                + self.frame_range() * ((self.anim_timer.timer_fraction() * 100.) as usize) / 100
         } else {
             panic!("Doesn't have a timer");
         }
@@ -107,16 +112,22 @@ impl StateAnimation {
     pub fn has_velocity_list(&self) -> bool {
         match self.anim_timer {
             AnimTimer::AnimTimer(_) => false,
-            AnimTimer::AnimVelocityList(_) => true
+            AnimTimer::AnimVelocityList(_) => true,
         }
     }
     pub fn frame_from_velocity(&self, velocity: f32) -> usize {
         if self.has_velocity_list() {
             let frame: usize;
             if self.indexes.0 < self.indexes.1 {
-                frame = self.indexes.0 + self.frame_range() * ((self.anim_timer.velocity_fraction(velocity) * 100.) as usize) / 100;
+                frame = self.indexes.0
+                    + self.frame_range()
+                        * ((self.anim_timer.velocity_fraction(velocity) * 100.) as usize)
+                        / 100;
             } else {
-                frame = self.indexes.0 - self.frame_range() * ((self.anim_timer.velocity_fraction(velocity) * 100.) as usize) / 100;
+                frame = self.indexes.0
+                    - self.frame_range()
+                        * ((self.anim_timer.velocity_fraction(velocity) * 100.) as usize)
+                        / 100;
             }
             //info!("Velocity:\t{}", velocity);
             //info!("Fram:\t\t{}", frame);
@@ -182,25 +193,32 @@ pub struct GraphicsBundle {
 impl GraphicsBundle {
     pub fn new(
         handle: Handle<Image>,
-        mut texture_atlas_layouts: &mut ResMut<Assets<TextureAtlasLayout>>,
+        texture_atlas_layouts: &mut ResMut<Assets<TextureAtlasLayout>>,
         tile_size: UVec2,
         tile_columns: u32,
         tile_rows: u32,
         origin: Vec2,
     ) -> Self {
-        let atlas_layout = TextureAtlasLayout::from_grid(tile_size, tile_columns, tile_rows, Some(UVec2::new(1,1)), None);
+        let atlas_layout = TextureAtlasLayout::from_grid(
+            tile_size,
+            tile_columns,
+            tile_rows,
+            Some(UVec2::new(1, 1)),
+            None,
+        );
         let texture_atlas_layout = texture_atlas_layouts.add(atlas_layout);
         Self {
             sprite: SpriteBundle {
                 texture: handle,
-                transform: Transform::from_translation(origin.extend(0.)).with_scale(Vec3::splat(2.)),
+                transform: Transform::from_translation(origin.extend(0.))
+                    .with_scale(Vec3::splat(2.)),
                 ..default()
             },
             texture_atlas: TextureAtlas {
                 layout: texture_atlas_layout,
-                index: 1
+                index: 1,
             },
-            facing: Facing::Right
+            facing: Facing::Right,
         }
     }
     pub fn with_anchor(mut self, anchor: Anchor) -> Self {
@@ -214,6 +232,5 @@ impl GraphicsBundle {
     pub fn with_transform(mut self, transform: Transform) -> Self {
         self.sprite.transform = transform;
         self
-
     }
 }

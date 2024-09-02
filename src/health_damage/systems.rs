@@ -1,10 +1,7 @@
 use avian2d::prelude::PhysicsSet;
 use bevy::{prelude::*, sprite::Anchor};
 
-use crate::{
-    setup, GraphicsBundle, HealingCurve, HealingTimer, Health, Healthbar, HealthbarBorder,
-    HealthbarFill,
-};
+use crate::{HealingCurve, HealingTimer, Health, Healthbar, HealthbarBorder, HealthbarFill};
 
 pub struct NPCPlugin;
 
@@ -29,7 +26,6 @@ impl Plugin for NPCPlugin {
 fn spawn_health_bars(
     mut query: Query<(Entity, &Transform, &Name), Added<Health>>,
     asset_server: Res<AssetServer>,
-    mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut commands: Commands,
 ) {
     for (entity, transform, name) in query.iter_mut() {
@@ -70,10 +66,10 @@ fn spawn_health_bars(
 }
 
 fn health_bar_follow_entity(
-    mut bar_query: Query<(&Healthbar, &mut Transform), Without<(Health)>>,
+    mut bar_query: Query<(&Healthbar, &mut Transform), Without<Health>>,
     health_query: Query<
         (&Transform, &Handle<Image>),
-        (With<Sprite>, With<Health>, Without<(Healthbar)>),
+        (With<Sprite>, With<Health>, Without<Healthbar>),
     >,
     assets: Res<Assets<Image>>,
 ) {

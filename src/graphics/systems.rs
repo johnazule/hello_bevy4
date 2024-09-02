@@ -1,13 +1,8 @@
-use std::f32::consts::PI;
-
 use avian2d::prelude::LinearVelocity;
-use bevy::{ecs::entity, prelude::*};
+use bevy::prelude::*;
 use bevy_light_2d::plugin::Light2dPlugin;
 
-use crate::{
-    setup, AnimTimer, AnimationList, Facing, GraphicsBundle, Grounded, Health, Healthbar,
-    StateAnimation, StateChange,
-};
+use crate::{AnimationList, Facing, Grounded, StateChange};
 
 use super::prelude::GraphicsState;
 
@@ -42,17 +37,14 @@ fn flip_sprite(mut query: Query<(&mut Transform, &mut Sprite, &Facing, &Name)>) 
 }
 
 fn set_state(
-    mut query: Query<(&mut GraphicsState)>,
+    mut query: Query<&mut GraphicsState>,
     mut state_change_event_reader: EventReader<StateChange>,
 ) {
     for graphics_state_change in state_change_event_reader.read() {
-        //info!("Here!!");
         let graphics_state_result = query.get_mut(graphics_state_change.entity);
         if graphics_state_result.is_ok() {
             let new_state = graphics_state_change.state.clone();
-            let debug_state = new_state.clone();
             *graphics_state_result.unwrap() = new_state;
-            //info!("The state ({:?}) has been set!!", debug_state);
         }
     }
 }

@@ -1,22 +1,22 @@
-use std::{collections::HashMap, f32::consts::PI, time::Duration};
+use std::{f32::consts::PI, time::Duration};
 
 use avian2d::{collision::Collider, prelude::Sensor};
-use bevy::{prelude::*, sprite::Anchor};
+use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
-
-use crate::Facing;
 
 #[derive(Component)]
 pub struct Item;
+
+pub enum DamageType {
+    CONTACT,
+}
 
 #[derive(Component)]
 pub struct Equipped;
 
 #[derive(Component, Default)]
 #[component(storage = "SparseSet")]
-pub struct InUse {
-    pub use_percent: f32,
-}
+pub struct InUse;
 
 #[derive(Component)]
 pub struct SwingDesc {

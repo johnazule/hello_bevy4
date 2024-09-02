@@ -1,16 +1,7 @@
-use std::{
-    f32::consts::{PI, TAU},
-    time::Duration,
-};
-
-use crate::{Facing, Player};
-use avian2d::{
-    collision::{Collider, CollidingEntities},
-    prelude::PhysicsSet,
-};
-use bevy::prelude::*;
-//use bevy::{ecs::system::ParamSet, prelude::*};
 use super::prelude::*;
+use crate::{Facing, Player};
+use avian2d::{collision::CollidingEntities, prelude::PhysicsSet};
+use bevy::prelude::*;
 
 pub struct ItemPlugin;
 
@@ -47,7 +38,7 @@ fn use_item(
     time: Res<Time>,
 ) {
     for player_transform in player_query.iter() {
-        for (mut transform, swing_desc, use_accel, mut use_time, mut in_use, entity) in
+        for (mut transform, swing_desc, use_accel, mut use_time, in_use, entity) in
             item_query.iter_mut()
         {
             if use_time.0.fraction() == 0. {
@@ -86,14 +77,13 @@ fn use_item(
 
 fn equip_item(
     mut commands: Commands,
-    player_query: Query<(&CollidingEntities), (With<Player>)>,
+    player_query: Query<&CollidingEntities, With<Player>>,
     mut item_query: Query<
         (&mut Transform, Option<&SwingDesc>, Entity),
         (With<Item>, Without<Equipped>),
     >,
 ) {
-    //let (player_collider, colliding_entities) = player_query.single();
-    for (colliding_entities) in player_query.iter() {
+    player_query.iter().for_each(|colliding_entities| {
         for (mut item_transform, swing_desc, item_entitiy) in item_query.iter_mut() {
             if colliding_entities.0.contains(&item_entitiy) {
                 info!("Equipped!!");
@@ -103,7 +93,7 @@ fn equip_item(
                 }
             }
         }
-    }
+    });
 }
 
 fn equipped_item_follow_player(
@@ -129,15 +119,6 @@ fn equipped_item_follow_player(
         }
         Err(_) => return,
     }
-    //if player_entity.is_ok() {
-    //    let Ok(player_transform) = transform_parems.p0().compute_global_transform(player_entity.unwrap()) else {
-    //        return
-    //    };
-    //    for mut item in transform_parems.p1().iter_mut() {
-    //        item.translation.x = player_transform.translation().x;
-    //        item.translation.y = player_transform.translation().y;
-    //    }
-    //}
 }
 
 fn handle_item_actions(
@@ -150,16 +131,10 @@ fn handle_item_actions(
         let item = item_query.get_single_mut();
         if item.is_ok() {
             let (item_entity, mut item_transform, swing_desc) = item.unwrap();
-            //item_transform.rotate_z(45. * TAU * time.delta_seconds());
             match event {
                 ItemAction::Use => {
                     //info!("Yay");
                     commands.entity(item_entity).insert(InUse::default());
-                    //if item.is_ok() {
-                    //    let (item_entity, mut item_transform, swing_desc) = item.unwrap();
-                    //    commands.entity(item_entity).insert(InUse::default());
-                    //    //item_transform.rotate_z(45. * TAU * time.delta_seconds());
-                    //}
                 }
                 ItemAction::Eat => {}
                 ItemAction::Start => {
