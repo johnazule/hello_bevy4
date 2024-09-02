@@ -1,11 +1,11 @@
-use std::{collections::HashMap, f32::consts::PI};
+use std::f32::consts::PI;
 
 use bevy::{prelude::*, sprite::Anchor};
 use bevy_ecs_ldtk::prelude::*;
 
 use crate::{
-    AnimationList, GraphicsBundle, GraphicsState, GreenLightingBundle, HahaBundle, Item,
-    ItemBundle, PlatformBundle, Player, PlayerBundle, PlayerGraphicsBundle, StateAnimation,
+    GraphicsBundle, GreenLightingBundle, HahaBundle,
+    ItemBundle, PlatformBundle, Player, PlayerBundle,
 };
 
 pub struct LevelPlugin;

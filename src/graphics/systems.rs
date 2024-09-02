@@ -21,7 +21,7 @@ impl Plugin for GraphicsPlugin {
 }
 
 fn flip_sprite(mut query: Query<(&mut Transform, &mut Sprite, &Facing, &Name)>) {
-    for (mut transform, mut sprite, facing, name) in query.iter_mut() {
+    for (transform, mut sprite, facing, name) in query.iter_mut() {
         //info!("{} is facing {:?}", name, facing);
         match facing {
             Facing::Right => {

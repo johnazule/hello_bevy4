@@ -1,4 +1,3 @@
-use std::ops::DerefMut;
 
 use avian2d::{math::*, prelude::*};
 use bevy::{ecs::query::Has, prelude::*};
@@ -168,7 +167,7 @@ pub fn run (
 ) {
     for (
         mut linear_velocity,
-        mut move_state,
+        move_state,
         mut run_timer,
         initial_run_speed,
         max_run_speed,
@@ -177,7 +176,7 @@ pub fn run (
     ) in query.iter_mut() {
         match *move_state {
             MoveState::Running(direction) => {
-                let mut previous_velocity = direction * (initial_run_speed.0 + max_run_speed.0 * run_curve.0.ease(run_timer.0.fraction()));
+                let previous_velocity = direction * (initial_run_speed.0 + max_run_speed.0 * run_curve.0.ease(run_timer.0.fraction()));
                 // Simulate Damping
                 //previous_velocity *= damping_factor.0;
                 run_timer.0.tick(time.delta());
@@ -220,7 +219,7 @@ pub fn movement_validation(
             mut jump_fall_state,     
             mut move_state,
             //jump_impulse,
-            mut linear_velocity,
+            linear_velocity,
             hang_time,
             mut jump_fall_counter,
             mut run_timer,
@@ -312,7 +311,7 @@ pub fn apply_air_ground_movement_damping(
         mut linear_velocity,
         colliding_entities
     ) in &mut query {
-        let mut rigid_hits = colliding_entities.iter().filter(|hit| {
+        let rigid_hits = colliding_entities.iter().filter(|hit| {
             grounds.get(**hit).unwrap().is_some()
         }).collect::<Vec<&Entity>>();
         // We could use `LinearDamping`, but we don't want to dampen movement along the Y axis
