@@ -1,7 +1,8 @@
-use std::{f32::consts::PI, time::Duration};
+use std::{collections::HashMap, f32::consts::PI, time::Duration};
 
 use avian2d::{collision::Collider, prelude::Sensor};
 use bevy::{prelude::*, sprite::Anchor};
+use bevy_ecs_ldtk::prelude::*;
 
 use crate::Facing;
 
@@ -74,7 +75,7 @@ pub enum ItemAction {
     // UseSecondary
 }
 
-#[derive(Bundle)]
+#[derive(Bundle, LdtkEntity)]
 pub struct ItemBundle {
     pub item: Item,
     //pub sprite_bundle: SpriteBundle,
@@ -127,5 +128,26 @@ impl ItemBundle {
     pub fn with_use_time(mut self, use_time: u64) -> Self {
         self.swing_bundle.use_time = UseTime(Timer::new(Duration::from_millis(use_time), TimerMode::Once));
         self
+    }
+}
+
+#[derive(Bundle, LdtkEntity)]
+pub struct CarrotSword {
+    pub name: Name,
+    pub item_bundle: ItemBundle,
+    #[sprite_bundle("sprites/carrot.png")]
+    pub sprite_sheet: SpriteBundle
+}
+impl Default for CarrotSword {
+    fn default() -> Self {
+        Self {
+            name: Name::new("Carrot Sword"),
+            item_bundle: ItemBundle::default()
+                //.with_position(50.,-50.)
+                .with_use_accel(CubicSegment::new_bezier((0.25, 0.1), (0.25, 1.)))
+                .with_use_time(250)
+                .with_swing_desc(4. * PI / 3., PI / 6., 4.* PI / 3.),
+            sprite_sheet: SpriteBundle::default()
+        }
     }
 }

@@ -16,8 +16,6 @@ mod level;
 mod movement;
 mod npcs;
 
-mod item_list;
-
 use camera::prelude::*;
 use graphics::prelude::*;
 use input::prelude::*;
@@ -25,8 +23,6 @@ use items::prelude::*;
 use level::prelude::*;
 use movement::prelude::*;
 use npcs::prelude::*;
-
-use item_list::*;
 
 fn main() {
     App::new()
@@ -250,8 +246,6 @@ pub struct PlayerBundle {
     name: Name,
     player: Player,
     character_controler: CharacterControllerBundle,
-            //Collider::rectangle(10.0, 10.0),
-            //LockedAxes::ROTATION_LOCKED,
     friction: Friction,
     restitution: Restitution,
     collider_density: ColliderDensity,
@@ -259,7 +253,6 @@ pub struct PlayerBundle {
     #[sprite_sheet_bundle("sprites/hehe.png", 10, 20, 6, 3, 1, 0, 0)]
     sprite_sheet_bundle: LdtkSpriteSheetBundle,
     player_graphics_bundle: PlayerGraphicsBundle,
-    //player_graphics_bundle: PlayerGraphicsBundle,
     #[worldly]
     worldly: Worldly,
     health: HealthBundle
@@ -334,7 +327,10 @@ impl Default for PlayerBundle {
 pub struct HahaBundle {
     name: Name,
     controller: CharacterControllerBundle,
-    health: HealthBundle
+    health: HealthBundle,
+    player_graphics_bundle: PlayerGraphicsBundle,
+    #[sprite_sheet_bundle("sprites/haha.png", 20, 50, 4, 2, 1, 0, 0)]
+    sprite_sheet_bundle: LdtkSpriteSheetBundle
 }
 
 impl Default for HahaBundle {
@@ -350,7 +346,30 @@ impl Default for HahaBundle {
                 FallBundle::default(),
                 40.,
                 30),
-            health: HealthBundle::new(100.)
+            health: HealthBundle::new(100.),
+            player_graphics_bundle: PlayerGraphicsBundle {
+                        facing: Facing::default(),
+                        state: GraphicsState::Falling,
+                        animation_list: AnimationList(HashMap::from([
+                                (GraphicsState::Idle, StateAnimation::new_timer(0, 3, 450)),
+                                (GraphicsState::Running, StateAnimation::new_timer(4, 7, 300)),
+                                //(GraphicsState::Jumping, StateAnimation::new_velocity_list(6, 11, vec![
+                                //                                                           100.,
+                                //                                                           200.,
+                                //                                                           300.,
+                                //                                                           400.,
+                                //                                                           500.,
+                                //])),
+                                //(GraphicsState::Falling, StateAnimation::new_velocity_list(11, 6, vec![
+                                //                                                           -10.,
+                                //                                                           -100.,
+                                //                                                           -220.,
+                                //                                                           -230.,
+                                //                                                           -250.,
+                                //])),
+                        ])),
+            },
+            sprite_sheet_bundle: LdtkSpriteSheetBundle::default()
         }
     }
 }
@@ -379,7 +398,6 @@ pub struct PlatformBundle {
     pub collider: Collider,
     pub friction: Friction,
     pub collision_layer: CollisionLayers,
-    //pub sprite_bundle: SpriteBundle,
 }
 
 impl Default for PlatformBundle {
@@ -389,15 +407,6 @@ impl Default for PlatformBundle {
             collider: Collider::rectangle(16.0, 16.0),
             friction: Friction::new(0.5).with_static_coefficient(0.),
             collision_layer: CollisionLayers::new(GameLayer::GROUND,[GameLayer::CHARACTER]),
-            //sprite_bundle: SpriteBundle {
-            //    sprite: Sprite {
-            //        color: Color::WHITE,
-            //        custom_size: Some(Vec2::new(100., 10.)),
-            //        ..default()
-            //    },
-            //    transform: Transform::from_xyz(0., -100., 0.),    
-            //    ..default()
-            //},
         }
     }
 }
@@ -409,48 +418,6 @@ impl PlatformBundle {
             collider: Collider::rectangle(width, height),
             friction: Friction::ZERO,
             collision_layer: CollisionLayers::new(GameLayer::GROUND, [GameLayer::CHARACTER]),
-            //sprite_bundle: SpriteBundle {
-            //    sprite: Sprite {
-            //        color: Color::WHITE,
-            //        custom_size: Some(Vec2::new(width, height)),
-            //        ..Default::default()
-            //    },
-            //    transform: Transform::from_xyz(x, y, 0.),    
-            //    ..Default::default()
-            //},
         }
     }
-    pub fn default_wall() -> Self {
-        Self::new(0., -100., 10., 30.,)
-        //Self {
-        //    rigid_body: RigidBody::Static, 
-        //    collider: Collider::rectangle(10.0, 30.0),
-        //    friction: Friction::ZERO,
-        //    sprite_bundle: SpriteBundle {
-        //        sprite: Sprite {
-        //            color: Color::WHITE,
-        //            custom_size: Some(Vec2::new(10., 30.)),
-        //            ..Default::default()
-        //        },
-        //        transform: Transform::from_xyz(0., -100., 0.),    
-        //        ..Default::default()
-        //    },
-        //    light: PointLight::default()
-        //}
-    }
-    //pub fn with_random_location(mut self) -> Self {
-    //    let mut rng = rand::thread_rng();
-    //    let x = rng.gen_range(-100.0..100.0);
-    //    let y = rng.gen_range(-100.0..100.0);
-    //    self.sprite_bundle.transform = Transform::from_xyz(
-    //        x,y,0.
-    //    );
-    //    self
-    //}
-    //pub fn with_location(mut self, x: f32, y: f32) -> Self {
-    //    self.sprite_bundle.transform = Transform::from_xyz(
-    //        x,y,0.
-    //    );
-    //    self
-    //}
 }
