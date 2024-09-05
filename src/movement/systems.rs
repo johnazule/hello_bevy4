@@ -1,4 +1,3 @@
-
 use avian2d::{math::*, prelude::*};
 use bevy::{ecs::query::Has, prelude::*};
 
@@ -10,17 +9,19 @@ pub struct CharacterControllerPlugin;
 
 impl Plugin for CharacterControllerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<MovementEvent>().add_systems(
-            Update,
-            (
-                update_grounded,
-                movement_validation,
-                jump_fall,
-                run,
-                apply_air_ground_movement_damping,
-            )
-                .chain(),
-        );
+        app.register_type::<MaxJumpCount>()
+            .add_event::<MovementEvent>()
+            .add_systems(
+                Update,
+                (
+                    update_grounded,
+                    movement_validation,
+                    jump_fall,
+                    run,
+                    apply_air_ground_movement_damping,
+                )
+                    .chain(),
+            );
     }
 }
 
@@ -40,7 +41,7 @@ pub fn update_grounded(
             &mut FallTimer,
             &mut JumpFallState,
             Option<&MaxSlopeAngle>,
-            Has<Grounded>
+            Has<Grounded>,
         ),
         With<CharacterController>,
     >,
@@ -55,23 +56,20 @@ pub fn update_grounded(
         mut fall_timer,
         mut jump_fall_state,
         max_slope_angle,
-        is_already_grounded
-    ) in &mut query {
+        is_already_grounded,
+    ) in &mut query
+    {
         // The character is grounded if the shape caster has a hit with a normal
         // that isn't too steep.
         let mut rigid_hits = hits.iter().filter(|hit| {
             let ground_hits = grounds.get(hit.entity);
             match ground_hits {
-                Ok(hit) => {
-                    hit.is_some()
-                },
-                Err(_) => {
-                    false
-                }
+                Ok(hit) => hit.is_some(),
+                Err(_) => false,
             }
         });
         let is_grounded = rigid_hits.any(|hit| {
-        //let is_grounded = hits.iter().any(|hit| {
+            //let is_grounded = hits.iter().any(|hit| {
             if let Some(angle) = max_slope_angle {
                 (rotation * -hit.normal2).angle_between(Vector::Y).abs() <= angle.0
             } else {
@@ -118,7 +116,7 @@ pub fn jump_fall(
         &MaxFallSpeed,
         &FallCurve,
     )>,
-    time: Res<Time>
+    time: Res<Time>,
 ) {
     for (
         mut linear_velocity,
@@ -129,8 +127,9 @@ pub fn jump_fall(
         mut fall_timer,
         initial_fall_speed,
         max_fall_speed,
-        fall_curve
-    ) in query.iter_mut() {
+        fall_curve,
+    ) in query.iter_mut()
+    {
         //info!("Jump Fall State: {:?}", jump_fall_state);
         match *jump_fall_state {
             JumpFallState::Jumping => {
@@ -140,20 +139,21 @@ pub fn jump_fall(
                     return;
                 }
                 // TODO: Jump Curve should goto zero, not accelerate (duh)
-                linear_velocity.y = jump_height.0 * jump_curve.0.ease(jump_timer.0.fraction_remaining());
-            },
+                linear_velocity.y =
+                    jump_height.0 * jump_curve.0.ease(jump_timer.0.fraction_remaining());
+            }
             JumpFallState::Falling => {
                 jump_timer.0.reset();
                 fall_timer.0.tick(time.delta());
                 let new_velocity = max_fall_speed.0 * fall_curve.0.ease(fall_timer.0.fraction());
                 linear_velocity.y = linear_velocity.y.lerp(new_velocity, 0.1);
-            },
+            }
             JumpFallState::Idle => {}
         }
     }
 }
 
-pub fn run (
+pub fn run(
     mut query: Query<(
         &mut LinearVelocity,
         &mut MoveState,
@@ -161,9 +161,9 @@ pub fn run (
         &InitialRunSpeed,
         &MaxRunSpeed,
         &RunCurve,
-        &GroundMovementDampingFactor
+        &GroundMovementDampingFactor,
     )>,
-    time: Res<Time>
+    time: Res<Time>,
 ) {
     for (
         mut linear_velocity,
@@ -172,24 +172,29 @@ pub fn run (
         initial_run_speed,
         max_run_speed,
         run_curve,
-        damping_factor
-    ) in query.iter_mut() {
+        damping_factor,
+    ) in query.iter_mut()
+    {
         match *move_state {
             MoveState::Running(direction) => {
-                let previous_velocity = direction * (initial_run_speed.0 + max_run_speed.0 * run_curve.0.ease(run_timer.0.fraction()));
+                let previous_velocity = direction
+                    * (initial_run_speed.0
+                        + max_run_speed.0 * run_curve.0.ease(run_timer.0.fraction()));
                 // Simulate Damping
                 //previous_velocity *= damping_factor.0;
                 run_timer.0.tick(time.delta());
-                let new_velocity = direction * (initial_run_speed.0 + max_run_speed.0 * run_curve.0.ease(run_timer.0.fraction()));
+                let new_velocity = direction
+                    * (initial_run_speed.0
+                        + max_run_speed.0 * run_curve.0.ease(run_timer.0.fraction()));
                 //info!("Expected: {}", previous_velocity);
                 //info!("Current: {}", linear_velocity.x);
                 //info!("New: {}\n", new_velocity);
                 run_timer.0.tick(time.delta());
                 linear_velocity.x = new_velocity;
-            },
-            MoveState::Dashing => {},
+            }
+            MoveState::Dashing => {}
             MoveState::Idle => {}
-        } 
+        }
     }
 }
 
@@ -206,7 +211,7 @@ pub fn movement_validation(
         &mut RunTimer,
         &MaxJumpCount,
         &mut Facing,
-        Has<Grounded>
+        Has<Grounded>,
     )>,
 ) {
     // Precision is adjusted so that the example works with
@@ -216,7 +221,7 @@ pub fn movement_validation(
     for event in movement_event_reader.read() {
         let event_controller = controllers.get_mut(event.entity);
         if let Ok((
-            mut jump_fall_state,     
+            mut jump_fall_state,
             mut move_state,
             //jump_impulse,
             linear_velocity,
@@ -225,19 +230,20 @@ pub fn movement_validation(
             mut run_timer,
             max_jump_counter,
             mut facing,
-            is_grounded
-        )) = event_controller {
+            is_grounded,
+        )) = event_controller
+        {
             match event.action {
                 // TODO: Decide if this should be RunRight or MoveRight
                 MovementAction::RunRight => {
                     *facing = Facing::Right;
                     *move_state = MoveState::Running(1.);
                     //linear_velocity.x += *direction * movement_acceleration.0 * delta_time;
-                },
+                }
                 MovementAction::RunLeft => {
                     *move_state = MoveState::Running(-1.);
                     *facing = Facing::Left;
-                },
+                }
                 MovementAction::JumpStart => {
                     let has_jumps_left = jump_fall_counter.0 < max_jump_counter.0;
                     let is_base_jump = max_jump_counter.0 == jump_fall_counter.0;
@@ -262,18 +268,18 @@ pub fn movement_validation(
                     info!("Still Hanging:\t{}", still_hanging);
                     info!("Jump Counter:\t\t{}", jump_fall_counter.0);
                     info!("Can Jump:\t\t{}\n", can_jump);
-                },
+                }
                 MovementAction::JumpEnd => {
                     if *jump_fall_state == JumpFallState::Jumping {
                         *jump_fall_state = JumpFallState::Falling;
                     }
-                },
+                }
                 MovementAction::RunEnd => {
                     if matches!(*move_state, MoveState::Running(_)) {
                         *move_state = MoveState::Idle;
                         run_timer.0.reset();
                     }
-                },
+                }
                 MovementAction::Fall => {}
             }
         }
@@ -292,28 +298,28 @@ pub fn movement_validation(
 //    ) in &mut query {
 //        //linear_velocity.x *= damping_factor.0 / 2.;
 //        linear_velocity.x *= 0.5;
-//    } 
+//    }
 //}
 /// Slows down movement in the X direction.
 pub fn apply_air_ground_movement_damping(
-    mut query: Query<(
-        &GroundMovementDampingFactor,
-        &AirMovementDampingFactor,
-        &mut LinearVelocity,
-        &CollidingEntities
-        //&Collision
-    ), With<Player>>,
+    mut query: Query<
+        (
+            &GroundMovementDampingFactor,
+            &AirMovementDampingFactor,
+            &mut LinearVelocity,
+            &CollidingEntities, //&Collision
+        ),
+        With<Player>,
+    >,
     grounds: Query<Option<&RigidBody>, (With<Collider>, Without<Player>)>,
 ) {
-    for (
-        ground_damping_factor,
-        air_damping_factor,
-        mut linear_velocity,
-        colliding_entities
-    ) in &mut query {
-        let rigid_hits = colliding_entities.iter().filter(|hit| {
-            grounds.get(**hit).unwrap().is_some()
-        }).collect::<Vec<&Entity>>();
+    for (ground_damping_factor, air_damping_factor, mut linear_velocity, colliding_entities) in
+        &mut query
+    {
+        let rigid_hits = colliding_entities
+            .iter()
+            .filter(|hit| grounds.get(**hit).unwrap().is_some())
+            .collect::<Vec<&Entity>>();
         // We could use `LinearDamping`, but we don't want to dampen movement along the Y axis
         if rigid_hits.is_empty() {
             linear_velocity.x *= air_damping_factor.0;

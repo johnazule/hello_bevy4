@@ -4,8 +4,9 @@ use bevy_ecs_ldtk::prelude::*;
 use bevy_light_2d::light::{AmbientLight2d, PointLight2d};
 
 use avian2d::{math::*, prelude::*};
-//use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy::prelude::*;
+use bevy_editor_pls::prelude::*;
+//use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 
 mod camera;
 mod graphics;
@@ -27,6 +28,7 @@ fn main() {
     App::new()
         .add_plugins((
             DefaultPlugins.set(ImagePlugin::default_nearest()),
+            EditorPlugin::default(),
             PhysicsPlugins::default(),
             CharacterControllerPlugin,
             InputControllerPlugin,

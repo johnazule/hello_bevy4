@@ -2,28 +2,26 @@ use std::time::Duration;
 
 use avian2d::{math::*, prelude::*};
 use bevy::prelude::*;
-
+use bevy_inspector_egui::prelude::*;
+use bevy_reflect::Reflect;
 
 /// Collision Layers
 #[derive(PhysicsLayer)]
 pub enum GameLayer {
     NOTHING,
     CHARACTER,
-    GROUND
+    GROUND,
 }
 /// An event sent for a movement input action.
 #[derive(Event)]
 pub struct MovementEvent {
     pub entity: Entity,
-    pub action: MovementAction
+    pub action: MovementAction,
 }
 
 impl MovementEvent {
     pub fn new(entity: Entity, action: MovementAction) -> Self {
-        Self {
-            entity,
-            action
-        }
+        Self { entity, action }
     }
 }
 
@@ -33,7 +31,7 @@ pub enum MovementAction {
     RunEnd,
     JumpStart,
     JumpEnd,
-    Fall
+    Fall,
 }
 
 /// A marker component indicating that an entity is using a character controller.
@@ -46,7 +44,7 @@ pub struct CharacterController;
 pub struct Grounded;
 
 /// The time a character hangs (aka Cyote Time)
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct HangTime(pub Timer);
 
 /// The acceleration used for character movement.
@@ -66,22 +64,22 @@ pub struct AirMovementDampingFactor(pub Scalar);
 pub struct JumpImpulse(pub Scalar);
 
 /// The acceleration curve of a jump
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct JumpCurve(pub CubicSegment<Vec2>);
 
 /// The length of a jump
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct JumpTimer(pub Timer);
 
 /// The hieght of a jump
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct JumpHeight(pub Scalar);
 
 #[derive(Component, PartialEq, Debug)]
 pub enum JumpFallState {
     Jumping,
     Falling,
-    Idle
+    Idle,
 }
 
 #[derive(Component, PartialEq, Debug)]
@@ -92,17 +90,17 @@ pub enum MoveState {
 }
 
 /// The initial move velocity
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct InitialRunSpeed(pub f32);
 /// The maximum move velocity
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct MaxRunSpeed(pub f32);
 /// The duration of move acceleration
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct RunTimer(pub Timer);
 
 /// The run acceleration curve
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct RunCurve(pub CubicSegment<Vec2>);
 /// A bundle containing all nessacary Run Components
 #[derive(Bundle)]
@@ -115,26 +113,26 @@ pub struct RunBundle {
 }
 
 impl RunBundle {
-    pub fn new(initial_run_speed: f32, max_run_speed: f32, duration: u64, curve_control1: Vec2, curve_control2: Vec2) -> Self {
+    pub fn new(
+        initial_run_speed: f32,
+        max_run_speed: f32,
+        duration: u64,
+        curve_control1: Vec2,
+        curve_control2: Vec2,
+    ) -> Self {
         Self {
             initial_run_speed: InitialRunSpeed(initial_run_speed),
             max_run_speed: MaxRunSpeed(max_run_speed),
             run_timer: RunTimer(Timer::new(Duration::from_millis(duration), TimerMode::Once)),
             run_curve: RunCurve(CubicSegment::new_bezier(curve_control1, curve_control2)),
-            move_state: MoveState::Idle
+            move_state: MoveState::Idle,
         }
     }
 }
 
 impl Default for RunBundle {
     fn default() -> Self {
-        Self::new(
-            5.,
-            30.,
-            250,
-            Vec2::new(0.25, 0.1),
-            Vec2::new(0.25, 1.)
-        )
+        Self::new(5., 30., 250, Vec2::new(0.25, 0.1), Vec2::new(0.25, 1.))
     }
 }
 /// A bundle contataining all nessacary Jump Components
@@ -149,27 +147,27 @@ pub struct JumpBundle {
 }
 
 impl JumpBundle {
-    pub fn new(height: f32, duration: u64, max_jump_count: i32, curve_control1: Vec2, curve_control2: Vec2) -> Self {
+    pub fn new(
+        height: f32,
+        duration: u64,
+        max_jump_count: i32,
+        curve_control1: Vec2,
+        curve_control2: Vec2,
+    ) -> Self {
         Self {
             jump_height: JumpHeight(height),
             jump_timer: JumpTimer(Timer::new(Duration::from_millis(duration), TimerMode::Once)),
             jump_curve: JumpCurve(CubicSegment::new_bezier(curve_control1, curve_control2)),
             max_jump_count: MaxJumpCount(max_jump_count),
             jump_fall_counter: JumpFallCounter(0),
-            jump_fall_state: JumpFallState::Falling
+            jump_fall_state: JumpFallState::Falling,
         }
     }
 }
 
 impl Default for JumpBundle {
     fn default() -> Self {
-        Self::new(
-            100.,
-            250,
-            1,
-            Vec2::new(0.25, 0.1),
-            Vec2::new(0.25, 1.)
-        )
+        Self::new(100., 250, 1, Vec2::new(0.25, 0.1), Vec2::new(0.25, 1.))
         //Self {
         //    jump_height: JumpHeight(100.),
         //    jump_timer: JumpTimer(Timer::new(Duration::from_millis(250), TimerMode::Once)),
@@ -182,17 +180,17 @@ impl Default for JumpBundle {
 }
 
 /// The initial move velocity
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct InitialFallSpeed(pub f32);
 /// The maximum move velocity
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct MaxFallSpeed(pub f32);
 /// The duration of move acceleration
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct FallTimer(pub Timer);
 
 /// The run acceleration curve
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct FallCurve(pub CubicSegment<Vec2>);
 /// A bundle containing all nessacary Fall Components
 #[derive(Bundle)]
@@ -203,7 +201,13 @@ pub struct FallBundle {
     pub fall_curve: FallCurve,
 }
 impl FallBundle {
-    pub fn new(initial_fall_speed: f32, max_fall_speed: f32, duration: u64, curve_control1: Vec2, curve_control2: Vec2) -> Self {
+    pub fn new(
+        initial_fall_speed: f32,
+        max_fall_speed: f32,
+        duration: u64,
+        curve_control1: Vec2,
+        curve_control2: Vec2,
+    ) -> Self {
         Self {
             initial_fall_speed: InitialFallSpeed(initial_fall_speed),
             max_fall_speed: MaxFallSpeed(max_fall_speed),
@@ -215,13 +219,7 @@ impl FallBundle {
 
 impl Default for FallBundle {
     fn default() -> Self {
-        Self::new(
-            -5.,
-            -30.,
-            250,
-            Vec2::new(0.25, 0.1),
-            Vec2::new(0.25, 1.)
-        )
+        Self::new(-5., -30., 250, Vec2::new(0.25, 0.1), Vec2::new(0.25, 1.))
     }
 }
 
@@ -235,7 +233,8 @@ pub struct FallGravityScale(pub Scalar);
 #[derive(Component, Reflect)]
 pub struct MaxSlopeAngle(pub Scalar);
 
-#[derive(Component, Reflect)]
+#[derive(Component, Reflect, InspectorOptions)]
+#[reflect(InspectorOptions)]
 pub struct MaxJumpCount(pub i32);
 
 #[derive(Component, Reflect)]
@@ -307,10 +306,10 @@ impl MovementBundle {
 impl Default for MovementBundle {
     fn default() -> Self {
         Self::new(
-            0.9, 
-            0.9, 
+            0.9,
+            0.9,
             RunBundle::default(),
-            JumpBundle::default(), 
+            JumpBundle::default(),
             FallBundle::default(),
             PI * 0.45,
             100,
@@ -348,8 +347,15 @@ impl CharacterControllerBundle {
         max_slope_angle: Scalar,
         hang_duration: u64,
     ) -> Self {
-        self.movement = MovementBundle::new(ground_damping, air_damping, run_bundle, jump_bundle, fall_bundle, max_slope_angle, hang_duration);
+        self.movement = MovementBundle::new(
+            ground_damping,
+            air_damping,
+            run_bundle,
+            jump_bundle,
+            fall_bundle,
+            max_slope_angle,
+            hang_duration,
+        );
         self
     }
 }
-
