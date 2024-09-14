@@ -1,5 +1,7 @@
+use super::prelude::*;
 use avian2d::prelude::LinearVelocity;
 use bevy::prelude::*;
+use bevy_ecs_ldtk::app::LdtkIntCellAppExt;
 use bevy_light_2d::plugin::Light2dPlugin;
 
 use crate::{AnimationList, Facing, Grounded, StateChange};
@@ -15,6 +17,7 @@ impl Plugin for GraphicsPlugin {
                 Update,
                 (flip_sprite, state_machine, set_state, set_sprite_from_state).chain(),
             )
+            .register_ldtk_int_cell_for_layer::<GreenLightingBundle>("IntGridLighting", 1)
             .insert_resource(Msaa::Off)
             .add_plugins(Light2dPlugin);
     }

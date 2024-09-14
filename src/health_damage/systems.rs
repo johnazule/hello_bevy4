@@ -3,9 +3,9 @@ use bevy::{prelude::*, sprite::Anchor};
 
 use crate::{HealingCurve, HealingTimer, Health, Healthbar, HealthbarBorder, HealthbarFill};
 
-pub struct NPCPlugin;
+pub struct HealthPlugin;
 
-impl Plugin for NPCPlugin {
+impl Plugin for HealthPlugin {
     fn build(&self, app: &mut App) {
         app
             //.add_systems(Startup, (spawn_health_bars.after(setup)))
@@ -29,7 +29,6 @@ fn spawn_health_bars(
     mut commands: Commands,
 ) {
     for (entity, transform, name) in query.iter_mut() {
-        info!("Spawning Healthbar for {} ({:?})", name, entity);
         let mut z_ordered_transform = *transform;
         z_ordered_transform.translation.z = 110.;
         let mut z_ordered_transform_offset = *transform;
@@ -127,6 +126,6 @@ fn healing(mut query: Query<(&mut Health, &HealingCurve, &mut HealingTimer)>, ti
         } else {
             health.current
         };
-        info!("Health New: {}\n", health.current);
+        //info!("Health New: {}\n", health.current);
     }
 }

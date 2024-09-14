@@ -31,11 +31,7 @@ fn camera_follow_player(
     }
 }
 
-fn spawn_player_camera(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
-) {
+fn spawn_player_camera(mut commands: Commands) {
     commands.spawn((
         Camera2dBundle::default(),
         AmbientLight2d {

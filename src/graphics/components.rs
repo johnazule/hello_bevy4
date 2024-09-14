@@ -1,6 +1,8 @@
 use std::{collections::HashMap, time::Duration};
 
 use bevy::{prelude::*, sprite::Anchor};
+use bevy_ecs_ldtk::LdtkIntCell;
+use bevy_light_2d::light::PointLight2d;
 
 /// The direction the entity is facing
 #[derive(Component, Clone, Debug, Default)]
@@ -232,5 +234,23 @@ impl GraphicsBundle {
     pub fn with_transform(mut self, transform: Transform) -> Self {
         self.sprite.transform = transform;
         self
+    }
+}
+
+#[derive(Bundle, Clone, LdtkIntCell)]
+pub struct GreenLightingBundle {
+    pub light2d: PointLight2d,
+}
+impl Default for GreenLightingBundle {
+    fn default() -> Self {
+        Self {
+            light2d: PointLight2d {
+                radius: 200.0,
+                intensity: 1.5,
+                cast_shadows: true,
+                falloff: 4.5,
+                color: Color::linear_rgb(0., 1., 0.2),
+            },
+        }
     }
 }
