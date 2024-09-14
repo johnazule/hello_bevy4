@@ -1,13 +1,14 @@
 use crate::{PhysicsSet, Player};
 use bevy::prelude::*;
+use bevy_light_2d::light::AmbientLight2d;
 
-use super::prelude::*;
+use super::components::*;
 
 pub struct CameraControllerPlugin;
 
 impl Plugin for CameraControllerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
+        app.add_systems(Startup, spawn_player_camera).add_systems(
             Update,
             camera_follow_player
                 .after(PhysicsSet::Sync)
@@ -28,4 +29,19 @@ fn camera_follow_player(
                 + Vec3::new(0., 40., 0.);
         });
     }
+}
+
+fn spawn_player_camera(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
+) {
+    commands.spawn((
+        Camera2dBundle::default(),
+        AmbientLight2d {
+            brightness: 0.2,
+            color: Color::linear_rgb(1.00, 0.8, 0.5),
+        },
+        PlayerCamera,
+    ));
 }

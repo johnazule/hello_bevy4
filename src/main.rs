@@ -8,21 +8,57 @@ use bevy::prelude::*;
 use bevy_editor_pls::prelude::*;
 //use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 
-mod camera;
-mod graphics;
-mod health_damage;
-mod input;
-mod items;
-mod level;
-mod movement;
+macro_rules! import_game_modules {
+    ($( $x:ident ),*) => {
+        $(
+            mod $x {
+                pub mod components;
+                pub mod systems;
+                pub mod prelude {
+                    #[allow(unused_imports)]
+                    pub use super::components::*;
+                    pub use super::systems::*;
+                }
+            }
+            use $x::prelude::*;
+        )*
+    };
+}
+//mod camera {
+//    pub mod components;
+//    pub mod systems;
+//    pub mod prelude {
+//        pub use super::components::*;
+//        pub use super::systems::*;
+//    }
+//}
+//use camera::prelude::*;
+import_game_modules!(
+    camera,
+    graphics,
+    health_damage,
+    input,
+    items,
+    level,
+    movement,
+    player
+);
 
-use camera::prelude::*;
-use graphics::prelude::*;
-use health_damage::prelude::*;
-use input::prelude::*;
-use items::prelude::*;
-use level::prelude::*;
-use movement::prelude::*;
+//mod graphics;
+//mod health_damage;
+//mod input;
+//mod items;
+//mod level;
+//mod movement;
+//mod player;
+
+//use graphics::prelude::*;
+//use health_damage::prelude::*;
+//use input::prelude::*;
+//use items::prelude::*;
+//use level::prelude::*;
+//use movement::prelude::*;
+//use player::prelude::*;
 
 fn main() {
     App::new()
@@ -38,101 +74,8 @@ fn main() {
             NPCPlugin,
             LevelPlugin, //WorldInspectorPlugin::new()
         ))
-        .insert_resource(Gravity(Vec2::NEG_Y * 1200.))
         .insert_resource(ClearColor(Color::linear_rgb(0.3, 0.2, 0.0)))
-        .add_systems(Startup, setup)
         .run();
-}
-
-#[derive(Component)]
-pub struct Player;
-
-fn setup(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
-) {
-    commands.spawn((
-        Camera2dBundle::default(),
-        AmbientLight2d {
-            brightness: 0.2,
-            color: Color::linear_rgb(1.00, 0.8, 0.5),
-        },
-        PlayerCamera,
-    ));
-}
-
-#[derive(Bundle, LdtkEntity)]
-pub struct PlayerBundle {
-    name: Name,
-    player: Player,
-    character_controler: CharacterControllerBundle,
-    friction: Friction,
-    restitution: Restitution,
-    collider_density: ColliderDensity,
-    #[sprite_sheet_bundle("sprites/hehe.png", 10, 20, 6, 3, 1, 0, 0)]
-    sprite_sheet_bundle: LdtkSpriteSheetBundle,
-    player_graphics_bundle: PlayerGraphicsBundle,
-    #[worldly]
-    worldly: Worldly,
-    health: HealthBundle,
-}
-
-impl Default for PlayerBundle {
-    fn default() -> Self {
-        Self {
-            name: Name::new("Hehe"),
-            player: Player,
-            character_controler: CharacterControllerBundle::new(Collider::rectangle(10.0, 20.0))
-                .with_movement(
-                    0.80,
-                    0.50,
-                    RunBundle::new(20., 380., 550, Vec2::new(0.5, 0.5), Vec2::new(0.5, 0.5)),
-                    JumpBundle::new(800., 200, 3, Vec2::new(0., 1.), Vec2::new(0.7, 0.9)),
-                    FallBundle::new(
-                        // TODO: Get rid of initial fall speed??
-                        -0.,
-                        -800.,
-                        550,
-                        Vec2::new(0.0, 1.0),
-                        Vec2::new(0.50, 1.0),
-                    ),
-                    (30.0 as Scalar).to_radians(),
-                    100,
-                ),
-            friction: Friction::ZERO.with_combine_rule(CoefficientCombine::Max),
-            restitution: Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
-            collider_density: ColliderDensity(2.0),
-            sprite_sheet_bundle: LdtkSpriteSheetBundle::default(),
-            player_graphics_bundle: PlayerGraphicsBundle {
-                facing: Facing::default(),
-                state: GraphicsState::Falling,
-                animation_list: AnimationList(HashMap::from([
-                    (GraphicsState::Idle, StateAnimation::new_timer(12, 17, 450)),
-                    (GraphicsState::Running, StateAnimation::new_timer(0, 5, 300)),
-                    (
-                        GraphicsState::Jumping,
-                        StateAnimation::new_velocity_list(
-                            6,
-                            11,
-                            vec![100., 200., 300., 400., 500.],
-                        ),
-                    ),
-                    (
-                        GraphicsState::Falling,
-                        StateAnimation::new_velocity_list(
-                            11,
-                            6,
-                            vec![-10., -100., -220., -230., -250.],
-                        ),
-                    ),
-                ])),
-            },
-            worldly: Worldly::default(),
-            health: HealthBundle::new(100., [[0.25, 0.1], [0.25, 1.]], 2800)
-                .with_current_health(50.),
-        }
-    }
 }
 
 #[derive(Bundle, LdtkEntity)]

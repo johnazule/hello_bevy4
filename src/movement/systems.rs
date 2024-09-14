@@ -10,6 +10,7 @@ pub struct CharacterControllerPlugin;
 impl Plugin for CharacterControllerPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<MaxJumpCount>()
+            .insert_resource(Gravity(Vec2::NEG_Y * 1200.))
             .add_event::<MovementEvent>()
             .add_systems(
                 Update,
