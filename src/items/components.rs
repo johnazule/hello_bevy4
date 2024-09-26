@@ -1,7 +1,7 @@
 use std::{f32::consts::PI, time::Duration};
 
 use avian2d::{collision::Collider, prelude::Sensor};
-use bevy::prelude::*;
+use bevy::{math::NormedVectorSpace, prelude::*};
 use bevy_ecs_ldtk::prelude::*;
 
 #[derive(Component)]
@@ -12,7 +12,7 @@ pub enum DamageType {
 }
 
 #[derive(Component)]
-pub struct Equipped;
+pub struct Equipped(pub Entity);
 
 #[derive(Component, Default)]
 #[component(storage = "SparseSet")]
@@ -67,12 +67,14 @@ pub struct SwingBundle {
 
 #[derive(Event)]
 pub enum ItemAction {
-    Use,
-    Eat,
-    Start,
-    End,
-    Rest, // Maybe something like
-          // UseSecondary
+    Interact(Entity),
+    Use(Entity),
+    Eat(Entity),
+    Start(Entity),
+    End(Entity),
+    Rest(Entity),
+    // Maybe something like
+    // UseSecondary
 }
 
 #[derive(Bundle, LdtkEntity)]

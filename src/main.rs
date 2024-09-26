@@ -29,8 +29,10 @@ import_game_modules!(
     camera,
     graphics,
     enemies,
+    farming,
     health_damage,
     input,
+    interactables,
     items,
     level,
     movement,
@@ -45,9 +47,11 @@ fn main() {
             PhysicsPlugins::default(),
             CharacterControllerPlugin,
             InputControllerPlugin,
+            InteractablePlugin,
             ItemPlugin,
             CameraControllerPlugin,
             GraphicsPlugin,
+            FarmingPlugin,
             HealthPlugin,
             EnemyPlugin,
             PlayerPlugin,
@@ -55,34 +59,4 @@ fn main() {
         ))
         .insert_resource(ClearColor(Color::linear_rgb(0.3, 0.2, 0.0)))
         .run();
-}
-
-#[derive(Bundle, Clone, LdtkIntCell)]
-pub struct PlatformBundle {
-    pub rigid_body: RigidBody,
-    pub collider: Collider,
-    pub friction: Friction,
-    pub collision_layer: CollisionLayers,
-}
-
-impl Default for PlatformBundle {
-    fn default() -> Self {
-        Self {
-            rigid_body: RigidBody::Static,
-            collider: Collider::rectangle(16.0, 16.0),
-            friction: Friction::new(0.5).with_static_coefficient(0.),
-            collision_layer: CollisionLayers::new(GameLayer::GROUND, [GameLayer::CHARACTER]),
-        }
-    }
-}
-
-impl PlatformBundle {
-    pub fn new(x: f32, y: f32, width: f32, height: f32) -> Self {
-        Self {
-            rigid_body: RigidBody::Static,
-            collider: Collider::rectangle(width, height),
-            friction: Friction::ZERO,
-            collision_layer: CollisionLayers::new(GameLayer::GROUND, [GameLayer::CHARACTER]),
-        }
-    }
 }

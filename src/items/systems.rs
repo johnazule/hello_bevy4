@@ -1,7 +1,7 @@
-use std::f32::consts::PI;
+use std::{f32::consts::PI, ops::Deref};
 
 use super::prelude::*;
-use crate::{Facing, GraphicsBundle, Player};
+use crate::{process_player, Facing, GraphicsBundle, InteractableItems, InteractorRange, Player};
 use avian2d::{collision::CollidingEntities, prelude::PhysicsSet};
 use bevy::{prelude::*, sprite::Anchor};
 use bevy_ecs_ldtk::EntityInstance;
@@ -13,6 +13,7 @@ impl Plugin for ItemPlugin {
         app.add_event::<ItemAction>().add_systems(
             Update,
             (
+                //update_item_resources,
                 process_item,
                 use_item,
                 equip_item,
@@ -24,6 +25,21 @@ impl Plugin for ItemPlugin {
         );
     }
 }
+
+//fn update_item_resources(
+//    mut items_in_player_equip_range: ResMut<ItemsInInteractRange>,
+//    player_query: Query<(&EquipRange, &Transform), (With<Player>, Without<Item>)>,
+//    item_query: Query<(Entity, &Transform), (With<Item>, Without<Player>)>,
+//) {
+//    let Ok((player_equip_range, player_transform)) = player_query.get_single() else {
+//        panic!("More than 1 player");
+//    };
+//    items_in_player_equip_range.update(
+//        player_equip_range,
+//        player_transform,
+//        item_query.iter().collect::<Vec<(Entity, &Transform)>>(),
+//    );
+//}
 
 fn process_item(
     mut commands: Commands,
@@ -136,23 +152,28 @@ fn use_item(
 
 fn equip_item(
     mut commands: Commands,
-    player_query: Query<&CollidingEntities, With<Player>>,
+    equiper_query: Query<(&CollidingEntities, Entity, &InteractorRange), Without<Item>>,
     mut item_query: Query<
         (&mut Transform, Option<&SwingDesc>, Entity),
         (With<Item>, Without<Equipped>),
     >,
 ) {
-    player_query.iter().for_each(|colliding_entities| {
-        for (mut item_transform, swing_desc, item_entitiy) in item_query.iter_mut() {
-            if colliding_entities.0.contains(&item_entitiy) {
-                info!("Equipped!!");
-                commands.entity(item_entitiy).insert(Equipped);
-                if swing_desc.is_some() {
-                    item_transform.rotation = Quat::from_rotation_z(swing_desc.unwrap().rest_angle);
-                }
-            }
-        }
-    });
+    //equiper_query
+    //    .iter()
+    //    .for_each(|(colliding_entities, equiper_entity, equip_range)| {
+    //        for (mut item_transform, swing_desc, item_entitiy) in item_query.iter_mut() {
+    //            if colliding_entities.0.contains(&item_entitiy) {
+    //                info!("Equipped!!");
+    //                commands
+    //                    .entity(item_entitiy)
+    //                    .insert(Equipped(equiper_entity));
+    //                if swing_desc.is_some() {
+    //                    item_transform.rotation =
+    //                        Quat::from_rotation_z(swing_desc.unwrap().rest_angle);
+    //                }
+    //            }
+    //        }
+    //    });
 }
 
 fn equipped_item_follow_player(
@@ -180,30 +201,56 @@ fn equipped_item_follow_player(
     }
 }
 
+fn interact_item() {
+    info!("Interacting");
+}
+
 fn handle_item_actions(
     mut item_event_reader: EventReader<ItemAction>,
     mut commands: Commands,
     time: Res<Time>,
-    mut item_query: Query<(Entity, &mut Transform, &SwingDesc), (With<Item>, With<Equipped>)>,
+    player_query: Query<(Entity, &Children), With<Player>>,
+    interactable_items_query: Query<&InteractableItems>,
+    mut item_query: Query<(Entity, &mut Transform, &SwingDesc, Option<&Equipped>), With<Item>>,
 ) {
-    for event in item_event_reader.read() {
-        let item = item_query.get_single_mut();
-        if item.is_ok() {
-            let (item_entity, mut item_transform, swing_desc) = item.unwrap();
-            match event {
-                ItemAction::Use => {
-                    //info!("Yay");
-                    commands.entity(item_entity).insert(InUse::default());
-                }
-                ItemAction::Eat => {}
-                ItemAction::Start => {
-                    item_transform.rotation = Quat::from_rotation_z(swing_desc.start_angle);
-                }
-                ItemAction::End => {
-                    item_transform.rotation = Quat::from_rotation_z(swing_desc.end_angle);
-                }
-                ItemAction::Rest => {
-                    item_transform.rotation = Quat::from_rotation_z(swing_desc.rest_angle);
+    for (player_entity, player_children) in player_query.iter() {
+        let player_interactable_items_entity = player_children
+            .iter()
+            .filter(|player_children| item_query.get(**player_children).is_ok())
+            .take(1)
+            .next()
+            .unwrap();
+        let player_interactable_items = interactable_items_query
+            .get(*player_interactable_items_entity)
+            .unwrap()
+            .0
+            .clone();
+        for event in item_event_reader.read() {
+            for (mut item_entity, mut item_transform, swing_desc, is_equipped) in item_query
+                .iter_mut()
+                .filter(|item| player_interactable_items.contains(&item.0))
+            {
+                match event {
+                    ItemAction::Interact(event_item_entity) => {
+                        let interact_item_id = commands.register_one_shot_system(interact_item);
+                        commands.run_system(interact_item_id);
+                    }
+                    ItemAction::Use(event_item_entity) => {
+                        commands.entity(*event_item_entity).insert(InUse::default());
+                    }
+                    ItemAction::Eat(event_item_entity) => {}
+                    ItemAction::Start(event_item_entity) => {
+                        *item_transform.rotation =
+                            *Quat::from_rotation_z(swing_desc.start_angle).deref();
+                    }
+                    ItemAction::End(event_item_entity) => {
+                        *item_transform.rotation =
+                            *Quat::from_rotation_z(swing_desc.end_angle).deref();
+                    }
+                    ItemAction::Rest(event_item_entity) => {
+                        *item_transform.rotation =
+                            *Quat::from_rotation_z(swing_desc.rest_angle).deref();
+                    }
                 }
             }
         }

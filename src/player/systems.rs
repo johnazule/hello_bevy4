@@ -11,7 +11,7 @@ impl Plugin for PlayerPlugin {
     }
 }
 
-fn process_player(
+pub fn process_player(
     //mut commands: Commands,
     mut new_entity_instances: Query<(Entity, &mut Transform), Added<Player>>,
 ) {

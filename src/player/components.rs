@@ -6,6 +6,7 @@ use bevy_ecs_ldtk::prelude::*;
 use crate::graphics::prelude::*;
 use crate::health_damage::prelude::*;
 use crate::movement::prelude::*;
+use crate::InteractorRange;
 
 #[derive(Component)]
 pub struct Player;
@@ -24,6 +25,7 @@ pub struct PlayerBundle {
     #[worldly]
     worldly: Worldly,
     health: HealthBundle,
+    interactor: InteractorRange,
 }
 
 impl Default for PlayerBundle {
@@ -79,6 +81,7 @@ impl Default for PlayerBundle {
             worldly: Worldly::default(),
             health: HealthBundle::new(100., [[0.25, 0.1], [0.25, 1.]], 2800)
                 .with_current_health(50.),
+            interactor: InteractorRange(100.),
         }
     }
 }

@@ -245,10 +245,10 @@ impl Default for GreenLightingBundle {
     fn default() -> Self {
         Self {
             light2d: PointLight2d {
-                radius: 200.0,
-                intensity: 1.5,
+                radius: 150.0,
+                intensity: 0.5,
                 cast_shadows: true,
-                falloff: 4.5,
+                falloff: 3.5,
                 color: Color::linear_rgb(0., 1., 0.2),
             },
         }
