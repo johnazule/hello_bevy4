@@ -1,6 +1,10 @@
-use avian2d::prelude::{Collider, Sensor};
-use bevy::prelude::*;
+use avian2d::prelude::{Collider, CollidingEntities, Sensor};
+use bevy::{prelude::*, utils::hashbrown::HashSet};
 
+#[derive(Event)]
+pub enum InteractableAction {
+    UseOrEquip(Entity),
+}
 #[derive(Component)]
 pub struct InteractorRange(pub f32);
 
@@ -32,6 +36,34 @@ impl InteractorBundle {
     }
 }
 
+impl From<HashSet<Entity>> for InteractableItems {
+    fn from(value: HashSet<Entity>) -> Self {
+        let mut result = Self(vec![]);
+        for i in value.iter() {
+            result.0.push(*i);
+        }
+        result
+    }
+}
+impl<'a> From<&'a HashSet<Entity>> for InteractableItems {
+    fn from(value: &'a HashSet<Entity>) -> Self {
+        let mut result = Self(vec![]);
+        for i in value.iter() {
+            result.0.push(*i);
+        }
+        result
+    }
+}
+impl FromIterator<Entity> for InteractableItems {
+    fn from_iter<I: IntoIterator<Item = Entity>>(value: I) -> Self {
+        let mut result = Self(vec![]);
+        for i in value {
+            result.0.push(i);
+        }
+        result
+    }
+}
+
 impl Default for InteractorBundle {
     fn default() -> Self {
         Self::new(100.)
@@ -39,7 +71,7 @@ impl Default for InteractorBundle {
 }
 
 /// Items are sorted by distance to interactor entity
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct InteractableItems(pub Vec<Entity>);
 
 impl Default for InteractableItems {
@@ -82,3 +114,6 @@ impl InteractableItems {
             .collect();
     }
 }
+
+#[derive(Component)]
+pub struct Interactable;

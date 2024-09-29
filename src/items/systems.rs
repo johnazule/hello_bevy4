@@ -1,7 +1,10 @@
 use std::{f32::consts::PI, ops::Deref};
 
 use super::prelude::*;
-use crate::{process_player, Facing, GraphicsBundle, InteractableItems, InteractorRange, Player};
+use crate::{
+    process_player, Facing, GraphicsBundle, Interactable, InteractableItems, InteractorRange,
+    Player,
+};
 use avian2d::{collision::CollidingEntities, prelude::PhysicsSet};
 use bevy::{prelude::*, sprite::Anchor};
 use bevy_ecs_ldtk::EntityInstance;
@@ -68,6 +71,7 @@ fn process_item(
                         .with_use_accel(CubicSegment::new_bezier((0.25, 0.1), (0.25, 1.)))
                         .with_use_time(250)
                         .with_swing_desc(4. * PI / 3., PI / 6., 4. * PI / 3.),
+                    Interactable,
                 ));
             }
             "Strawberry" => {
@@ -89,6 +93,7 @@ fn process_item(
                         .with_use_accel(CubicSegment::new_bezier((0.25, 0.1), (0.25, 1.)))
                         .with_use_time(180)
                         .with_swing_desc(PI / 6., PI / 12., PI / 6.),
+                    Interactable,
                 ));
             }
             _ => {}
@@ -213,46 +218,70 @@ fn handle_item_actions(
     interactable_items_query: Query<&InteractableItems>,
     mut item_query: Query<(Entity, &mut Transform, &SwingDesc, Option<&Equipped>), With<Item>>,
 ) {
-    for (player_entity, player_children) in player_query.iter() {
-        let player_interactable_items_entity = player_children
-            .iter()
-            .filter(|player_children| item_query.get(**player_children).is_ok())
-            .take(1)
-            .next()
-            .unwrap();
-        let player_interactable_items = interactable_items_query
-            .get(*player_interactable_items_entity)
-            .unwrap()
-            .0
-            .clone();
-        for event in item_event_reader.read() {
-            for (mut item_entity, mut item_transform, swing_desc, is_equipped) in item_query
-                .iter_mut()
-                .filter(|item| player_interactable_items.contains(&item.0))
-            {
-                match event {
-                    ItemAction::Interact(event_item_entity) => {
-                        let interact_item_id = commands.register_one_shot_system(interact_item);
-                        commands.run_system(interact_item_id);
-                    }
-                    ItemAction::Use(event_item_entity) => {
-                        commands.entity(*event_item_entity).insert(InUse::default());
-                    }
-                    ItemAction::Eat(event_item_entity) => {}
-                    ItemAction::Start(event_item_entity) => {
-                        *item_transform.rotation =
-                            *Quat::from_rotation_z(swing_desc.start_angle).deref();
-                    }
-                    ItemAction::End(event_item_entity) => {
-                        *item_transform.rotation =
-                            *Quat::from_rotation_z(swing_desc.end_angle).deref();
-                    }
-                    ItemAction::Rest(event_item_entity) => {
-                        *item_transform.rotation =
-                            *Quat::from_rotation_z(swing_desc.rest_angle).deref();
-                    }
+    //for (player_entity, player_children) in player_query.iter() {
+    //    let player_interactable_items_result = player_children
+    //        .iter()
+    //        .filter_map(|child| interactable_items_query.get(*child).ok())
+    //        .take(1)
+    //        .next();
+    //    //let mut player_interactable_items_result;
+    //    //for child in player_children {
+    //    //    if interactable_items_query.contains(*child) {
+    //    //        player_interactable_items_result = interactable_items_query.get(*child);
+    //    //    }
+    //    //}
+    //    if player_interactable_items_result.is_none() {
+    //        info!("Here hehe");
+    //        continue;
+    //    }
+    //    let player_interactable_items = player_interactable_items_result.unwrap();
+    //let player_interactable_items = interactable_items_query.get(player_children)
+    //let player_interactable_items_entities_query = player_children
+    //    .iter()
+    //    .filter(|player_children| interactable_items_query.get(**player_children).is_ok())
+    //    .take(1)
+    //    .next();
+    //if !player_interactable_items_entities_query.is_some() {
+    //    info!("Here hehe");
+    //    return;
+    //}
+    //let player_interactable_items_entity = player_interactable_items_entities_query.unwrap();
+    //let player_interactable_item_closest = item_query
+    //    .get(*player_interactable_items_entity)
+    //    .unwrap()
+    //    .0
+    //    .clone();
+    for event in item_event_reader.read() {
+        for (mut item_entity, mut item_transform, swing_desc, is_equipped) in item_query.iter_mut()
+        {
+            match event {
+                //ItemAction::Interact(event_item_entity) => {
+                //    //for (mut item_entity, mut item_transform, swing_desc, is_equipped) in item_query
+                //    //    .iter_mut()
+                //    //    //.filter(|item| player_interactable_items.0.contains(&item.0))
+                //    //    .filter(|item| player_interactable_items.0[0] == item.0)
+                //    //{
+                //    //    let interact_item_id = commands.register_one_shot_system(interact_item);
+                //    //    commands.run_system(interact_item_id);
+                //    //}
+                //}
+                ItemAction::Use(event_item_entity) => {
+                    commands.entity(*event_item_entity).insert(InUse::default());
+                }
+                ItemAction::Eat(event_item_entity) => {}
+                ItemAction::Start(event_item_entity) => {
+                    *item_transform.rotation =
+                        *Quat::from_rotation_z(swing_desc.start_angle).deref();
+                }
+                ItemAction::End(event_item_entity) => {
+                    *item_transform.rotation = *Quat::from_rotation_z(swing_desc.end_angle).deref();
+                }
+                ItemAction::Rest(event_item_entity) => {
+                    *item_transform.rotation =
+                        *Quat::from_rotation_z(swing_desc.rest_angle).deref();
                 }
             }
         }
+        //}
     }
 }

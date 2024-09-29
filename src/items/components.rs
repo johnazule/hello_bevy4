@@ -67,7 +67,7 @@ pub struct SwingBundle {
 
 #[derive(Event)]
 pub enum ItemAction {
-    Interact(Entity),
+    //Interact(Entity),
     Use(Entity),
     Eat(Entity),
     Start(Entity),

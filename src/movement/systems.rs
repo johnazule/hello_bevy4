@@ -262,13 +262,13 @@ pub fn movement_validation(
                         //linear_velocity.y = jump_impulse.0;
                         //linear_velocity.y += jump_height.0 * jump_curve.0.ease(jump_timer.0.fraction());
                     }
-                    info!("Grounded:\t\t{}", is_grounded);
-                    info!("Jump Fall State:\t{:?}", jump_fall_state);
-                    info!("Has Jumps Left:\t{}", has_jumps_left);
-                    info!("Is Base Jump:\t\t{}", is_base_jump);
-                    info!("Still Hanging:\t{}", still_hanging);
-                    info!("Jump Counter:\t\t{}", jump_fall_counter.0);
-                    info!("Can Jump:\t\t{}\n", can_jump);
+                    //info!("Grounded:\t\t{}", is_grounded);
+                    //info!("Jump Fall State:\t{:?}", jump_fall_state);
+                    //info!("Has Jumps Left:\t{}", has_jumps_left);
+                    //info!("Is Base Jump:\t\t{}", is_base_jump);
+                    //info!("Still Hanging:\t{}", still_hanging);
+                    //info!("Jump Counter:\t\t{}", jump_fall_counter.0);
+                    //info!("Can Jump:\t\t{}\n", can_jump);
                 }
                 MovementAction::JumpEnd => {
                     if *jump_fall_state == JumpFallState::Jumping {

@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 
-use crate::{movement::prelude::*, Equipped, InUse, InteractorRange, Item, ItemAction, Player};
+use crate::{
+    movement::prelude::*, Equipped, InUse, InteractableAction, InteractorRange, Item, ItemAction,
+    Player,
+};
 
 pub struct InputControllerPlugin;
 
@@ -20,6 +23,7 @@ impl Plugin for InputControllerPlugin {
 pub fn keyboard_input(
     mut movement_event_writer: EventWriter<MovementEvent>,
     mut item_event_writer: EventWriter<ItemAction>,
+    mut interactable_event_writer: EventWriter<InteractableAction>,
     items: Query<(Entity, Has<Equipped>, Has<InUse>), With<Item>>,
     player_query: Query<(Entity, &InteractorRange), (With<Player>, Without<Item>)>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
@@ -78,7 +82,7 @@ pub fn keyboard_input(
                 }
             }
             if keyboard_input.just_pressed(KeyCode::KeyV) {
-                item_event_writer.send(ItemAction::Interact(item_entity));
+                interactable_event_writer.send(InteractableAction::UseOrEquip(player_entity));
             }
         }
     } else {
