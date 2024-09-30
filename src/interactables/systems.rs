@@ -1,9 +1,10 @@
 use avian2d::prelude::CollidingEntities;
 use bevy::prelude::*;
+use bevy_ecs_ldtk::systems::process_ldtk_assets;
 
 use crate::{
-    Equipped, Interactable, InteractableAction, InteractableItems, InteractorBundle,
-    InteractorRange, InteractorSensor, Item,
+    process_player, Equipped, Interactable, InteractableAction, InteractableItems,
+    InteractorBundle, InteractorRange, InteractorSensor, Item,
 };
 
 pub struct InteractablePlugin;
@@ -15,7 +16,9 @@ impl Plugin for InteractablePlugin {
             .add_systems(
                 Update,
                 (
-                    spawn_interaction_sensors,
+                    spawn_interaction_sensors
+                        .after(process_player)
+                        .after(process_ldtk_assets),
                     update_interactable_items,
                     handle_interaction_events,
                 ),
@@ -32,7 +35,11 @@ pub fn spawn_interaction_sensors(
     interactor_query: Query<(Entity, &InteractorRange), Added<InteractorRange>>,
 ) {
     for (entity, interactor_range) in interactor_query.iter() {
-        info!("Here mofos");
+        info!("Here!");
+        //let interactor_sensor = commands
+        //    .spawn(InteractorBundle::new(interactor_range.0))
+        //    .id();
+        //commands.entity(entity).add_child(interactor_sensor);
         commands.entity(entity).with_children(|child_builder| {
             child_builder.spawn(InteractorBundle::new(interactor_range.0));
         });

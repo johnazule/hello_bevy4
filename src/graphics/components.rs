@@ -18,6 +18,7 @@ pub struct StateChange {
     pub entity: Entity,
 }
 
+#[derive(Debug)]
 pub enum AnimTimer {
     AnimTimer(Timer),
     AnimVelocityList(Vec<f32>),
@@ -66,6 +67,7 @@ impl AnimTimer {
 pub struct AnimationList(pub HashMap<GraphicsState, StateAnimation>);
 
 //#[derive(Component)]
+#[derive(Debug)]
 pub struct StateAnimation {
     pub indexes: (usize, usize),
     pub anim_timer: AnimTimer,

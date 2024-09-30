@@ -100,6 +100,7 @@ fn state_machine(
 
 fn set_sprite_from_state(
     mut query: Query<(
+        &Name,
         &GraphicsState,
         &LinearVelocity,
         &mut AnimationList,
@@ -107,10 +108,16 @@ fn set_sprite_from_state(
     )>,
     time: Res<Time>,
 ) {
-    for (graphics_state, linear_velocity, mut animation_list, mut texture_atlas) in query.iter_mut()
+    for (name, graphics_state, linear_velocity, mut animation_list, mut texture_atlas) in
+        query.iter_mut()
     {
+        if name.to_string() != "Haha" {
+            //info!("AnimationList: {:?}", animation_list.0);
+            info!("Here: {:?}", name);
+        }
         match animation_list.0.get_mut(graphics_state) {
             Some(state_animation) => {
+                //info!("Here in {:?} graphics state", name);
                 if state_animation.has_velocity_list() {
                     //info!("Velocity: {}", linear_velocity.y);
                     texture_atlas.index = state_animation.frame_from_velocity(linear_velocity.y);
@@ -119,7 +126,10 @@ fn set_sprite_from_state(
                     texture_atlas.index = state_animation.frame_from_percent();
                 }
             }
-            None => return,
+            None => {
+                //info!("Name: {} is here???", name);
+                continue;
+            }
         }
         //match *graphics_state {
         //    GraphicsState::Jumping => {
