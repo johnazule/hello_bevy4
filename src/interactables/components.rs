@@ -23,6 +23,7 @@ pub struct InteractorBundle {
     pub collider: Collider,
     pub sensor: Sensor,
     pub interactable_items: InteractableItems,
+    pub spatial_bundle: SpatialBundle,
 }
 
 impl InteractorBundle {
@@ -32,6 +33,7 @@ impl InteractorBundle {
             collider: Collider::circle(range),
             sensor: Sensor,
             interactable_items: InteractableItems::default(),
+            spatial_bundle: SpatialBundle::INHERITED_IDENTITY,
         }
     }
 }

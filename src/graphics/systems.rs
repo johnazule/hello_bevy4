@@ -111,10 +111,6 @@ fn set_sprite_from_state(
     for (name, graphics_state, linear_velocity, mut animation_list, mut texture_atlas) in
         query.iter_mut()
     {
-        if name.to_string() != "Haha" {
-            //info!("AnimationList: {:?}", animation_list.0);
-            info!("Here: {:?}", name);
-        }
         match animation_list.0.get_mut(graphics_state) {
             Some(state_animation) => {
                 //info!("Here in {:?} graphics state", name);

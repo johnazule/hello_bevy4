@@ -1,5 +1,5 @@
 use avian2d::prelude::CollidingEntities;
-use bevy::prelude::*;
+use bevy::{math::NormedVectorSpace, prelude::*};
 use bevy_ecs_ldtk::systems::process_ldtk_assets;
 
 use crate::{
@@ -48,7 +48,7 @@ pub fn spawn_interaction_sensors(
 
 pub fn update_interactable_items(
     mut interactor_sensor_query: Query<
-        (&CollidingEntities, &mut InteractableItems, &Transform),
+        (&CollidingEntities, &mut InteractableItems, &GlobalTransform),
         With<InteractorSensor>,
     >,
     items_query: Query<&Transform, (Without<InteractorSensor>, With<Item>, With<Interactable>)>,
@@ -67,12 +67,26 @@ pub fn update_interactable_items(
                 }
             })
             .collect();
+        //let debug_map: Vec<f32> = interactable_items
+        //    .0
+        //    .clone()
+        //    .iter()
+        //    .map(|e| {
+        //        items_query
+        //            .get(*e)
+        //            .unwrap()
+        //            .translation
+        //            .distance(interactor_transform.compute_transform().translation)
+        //    })
+        //    .collect();
+        //info!("Debug map: {:?}", debug_map);
+        info!("Hello?");
         interactable_items.0.sort_by_key(|e| {
             items_query
                 .get(*e)
                 .unwrap()
                 .translation
-                .distance_squared(interactor_transform.translation) as i32
+                .distance_squared(interactor_transform.translation()) as i32
         });
     }
 }
